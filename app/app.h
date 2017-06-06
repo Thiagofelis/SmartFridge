@@ -1,4 +1,5 @@
-
+#define FAIL -1
+#define SUCCESS 0
 
 int App_algumaLataPresente (lt *lata);
 

@@ -1,12 +1,12 @@
+#include "msp430g2553.h"
+#include <stdio.h>
+#include <math.h>
+#include <stdlib.h>
+#include "general.h"
+#include "adc.h"
+#include "lata.h"
+#define numero_latas 1
 
-#define numero_latas 
-
-
-void Configura_MSP ()
-{
-	WDTCTL = WDTPW  + WDTHOLD; // Desativa WDT
-	/* Seta pinagem */
-}
 
 void main (void)
 {

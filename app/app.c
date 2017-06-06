@@ -90,13 +90,16 @@ void App_attLedLatas (lt *lata)
 void App_enviaMed (lt *lata)
 {
 	BYTE s[3];
-	int i;
+	int i, j;
 	for (i = 0; i < numero_latas; i++)
 	{
 		if (LATA_Enviar (&lata[i], s) == true)
 		{
 			zig_TX_PayloadToBuffer (s, 3);
-			zig_TX_Transmit ();
+			do 
+			{
+				j = zig_TX_Transmit ();
+			} while (j == FAIL); // interrupcao do timer vai contar e resetar o radio se demorar mt
 		}
 	}
 }
@@ -164,7 +167,7 @@ int App_numDig (int a)
 }
 
 void App_configuraClock ()
-{
+{ // acho q n precisa desses trem n
 	BCSCTL1 = CALBC1_1MHZ;     
 	DCOCTL = CALDCO_1MHZ;
 	BCSCTL2 = 0x00;     	

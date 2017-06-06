@@ -81,10 +81,12 @@ WORD zig_ContiguousRead (WORD addr, BYTEPNT mem, int count)
 	return addr;
 }
 
-
-
-void zig_TX_Transmit () // funcionando :)
+int zig_TX_Transmit () // funcionando :)
 {
+	
+	if (Radio.TX_busy == 1)
+		return FAIL;
+	
 	WORD currAddr = 0x02; // jump Header and Frame lenght, fill later
 	
 	// Write control frame
@@ -133,6 +135,8 @@ void zig_TX_Transmit () // funcionando :)
 		Radio.TX_awatingAck = 1;
 	}
 	Radio.TX_busy = 1;
+	
+	return SUCCESS;
 }
 
 int zig_RX_Receive ()

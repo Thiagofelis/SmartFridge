@@ -7,6 +7,9 @@
 #include "zigaddr.h"
 #include "general2.h"
 
+#define FAIL -1
+#define SUCCESS 0
+
 typedef unsigned char BYTE;
 typedef unsigned int WORD;
 typedef unsigned char* BYTEPNT;
@@ -29,7 +32,7 @@ WORD zig_ContiguousWrite (WORD addr, BYTEPNT mem, int count);
 
 WORD zig_ContiguousRead (WORD addr, BYTEPNT mem, int count);
 
-void zig_TX_Transmit ();
+int zig_TX_Transmit ();
 
 int zig_RX_Receive ();
 
