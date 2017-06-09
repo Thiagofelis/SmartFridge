@@ -2,7 +2,6 @@ import RPi.GPIO as GPIO
 import time
 import spidev
 import sys
-sys.path.append('../inc')
 from defines import *
 	
 
@@ -10,7 +9,7 @@ class TX (object):
 	def __init__ (self):
 		self.seqNum = 0x00
 	
-	def addrConfig (self, PANID, SHORT=0, LONG=0): # addr as strings, PAN=2bytes, SHORT=2bytes, LONG=8bytes
+	def addrConfig (self, PANID, SHORT="00", LONG="00"): # addr as strings, PAN=2bytes, SHORT=2bytes, LONG=8bytes
 		# ex. PAN = "af23"
 		self.dstPANID = bytearray.fromhex (PANID)
 		self.dstSHORT = bytearray.fromhex (SHORT)
@@ -27,7 +26,7 @@ class TX (object):
 	
 class RX (object):
 	def __init__ (self):
-
+		self.a = 1
 class Rd (object):
 	def _receive (self):
 		if self.RX_bufferRear == self.RX_bufferFront and self.RX_empty == False: #buffer cheio
@@ -48,8 +47,10 @@ class Rd (object):
 
 		# Write control frame
 		currAddr = self.ContiguousWrite (currAddr, self.TXbuff.frameControl, 2)
-
-		currAddr = self.ContiguousWrite (currAddr, self.TXbuff.seqNum, 1)
+		
+		self.setRegister (currAddr, self.TXbuff.seqNum)
+#		currAddr = self.ContiguousWrite (currAddr, self.TXbuff.seqNum, 1)
+		currAddr += 1
 
 		if self.TXbuff.seqNum == 0x7f: # seqNum always <0x80, loops from 0x7f to 0x00
 			self.TXbuff.seqNum = 0x00
@@ -65,8 +66,8 @@ class Rd (object):
 			currAddr = self.ContiguousWrite (currAddr, self.TXbuff.dstLONG, 8)
 
 		if (((self.TXbuff.frameControl[1] & DST_ADDR_MODE) != DST_NO_ADDR)
-		  and ((self.frameControl[1] & SRC_ADDR_MODE) != SRC_NO_ADDR)  
-		  and ((self.frameControl[0] & PAN_ID_COMP_FIELD) == PAN_ID_COMP_DISABLED)): 
+		  and ((self.TXbuff.frameControl[1] & SRC_ADDR_MODE) != SRC_NO_ADDR)  
+		  and ((self.TXbuff.frameControl[0] & PAN_ID_COMP_FIELD) == PAN_ID_COMP_DISABLED)): 
 			currAddr = self.ContiguousWrite (currAddr, self.PANid, 2)
 
 		if (self.TXbuff.frameControl[1] & SRC_ADDR_MODE) == SRC_SHORT_ADDR:
@@ -174,7 +175,7 @@ class Rd (object):
 #		GPIO.setup (INTPIN, GPIO.IN)
 #		GPIO.add_event_detect(INTPIN, GPIO.RISING, callback=self.intHandle)  
 
-	def intHandle (self, channel)
+	def intHandle (self, channel):
 		if channel != INTPIN:
 			return
 		
@@ -191,22 +192,22 @@ class Rd (object):
 	def send (self, payload, PANID, ADDR, frameType, ackRequired, PANcomp, noSequenceNum, dstAddrMode, srcAddrMode):
 
 		# verificacao de erros
-		if len(ADDR) != 4 and len(ADDR) != 16:
-			return ADDR_ERROR
+#		if len(ADDR) != 4 and len(ADDR) != 16:
+#			return ADDR_ERROR
 
-		if (len(ADDR) == 4 and dstAddrMode != SRC_SHORT_ADDR):
-			return ADDR_ERROR			
+#		if (len(ADDR) == 4 and dstAddrMode != SRC_SHORT_ADDR):
+#			return ADDR_ERROR			
 	
-		if (len(ADDR) == 16 and dstAddrMode != SRC_LONG_ADDR):
-			return ADDR_ERROR
+#		if (len(ADDR) == 16 and dstAddrMode != SRC_LONG_ADDR):
+#			return ADDR_ERROR
 
 
-		if self.TX_busy == True:
-			self.waitOrReset ()
+#		if self.TX_busy == True:
+#			self.waitOrReset ()
 		
-		if dstAddrMode == SRC_SHORT_ADDR:
+		if dstAddrMode == DST_SHORT_ADDR:
 			self.TXbuff.addrConfig (PANID, SHORT = ADDR)
-		else
+		else:
 			self.TXbuff.addrConfig (PANID, LONG = ADDR)
 
 		self.TXbuff.config (frameType, ackRequired, PANcomp, noSequenceNum, dstAddrMode, srcAddrMode)

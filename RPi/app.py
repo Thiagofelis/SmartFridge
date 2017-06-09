@@ -1,9 +1,8 @@
 import RPi.GPIO as GPIO
 import sys
-sys.path.append('../inc')
 from defines import *
 
-def boardConfig ()
+def boardConfig ():
 	GPIO.setmode(GPIO.BOARD)
 	GPIO.setup (11, GPIO.OUT)
 	GPIO.setup (13, GPIO.OUT)
