@@ -4,6 +4,8 @@ SUCCESS 						= 0
 
 ADDR_ERROR						= 5
 
+INTPIN 	= 15
+
 # Control Frame "Defines"
 # Low Frame
 PACKET_TYPE_BEACON 				= 0b00000000 # 0

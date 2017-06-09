@@ -46,7 +46,7 @@ class Rd (object):
 		
 		self.RX_buffEmpty = False
 		
-		#lembrando q nesse caso vc é o dst e quem mandou é a src (obvio, mas confunde as vezes)
+		#lembrando q nesse caso vc o dst e quem mandou a src (obvio, mas confunde as vezes)
 		currAddr = 0x301
 		
 		currAddr = self.ContiguousRead (currAddr, self.RXbuff[self.RX_bufferRear].frameControl, 2)
@@ -89,7 +89,7 @@ class Rd (object):
 		
 		currAddr = self.ContiguousRead (currAddr, self.RXbuff[self.RX_bufferRear].lqi, 1)
 			
-		currAddr = self.ContiguousRead (currAddr, self.RXbuff[self.RX_bufferRear].rssi 1)
+		currAddr = self.ContiguousRead (currAddr, self.RXbuff[self.RX_bufferRear].rssi, 1)
 		
 		self.RX_bufferRear = self.RX_bufferRear + 1 if (self.RX_bufferRear + 1 != self.RX_buffSize) else 0
 		if self.RX_bufferRear == self.RX_bufferFront: 
@@ -279,25 +279,25 @@ class Rd (object):
 					self.TX_lastPackFail = True
 					if txInfo & 0b100000 == 0b100000:
 						self.TX_busyChannel = True
-					else
+					else:
 						self.TX_busyChannel = False
-				else
+				else:
 					self.TX_lastPackFail = False
 			
 		if info & 0b1000 == 0b1000: # int RX
 			GPIO.remove_event_detect(INTPIN)
-			self.setRegister (BBREG1, 0b100)			
+			self.setRegister ("BBREG1", 0b100)			
 			self._receive ()
-			self.setRegister (RXFLUSH, 0x01)
+			self.setRegister ("RXFLUSH", 0x01)
 			GPIO.add_event_detect(INTPIN, GPIO.FALLING, callback=self.intHandle)  
-			self.setRegister (BBREG1, 0x00)
+			self.setRegister ("BBREG1", 0x00)
 			
 	def waitOrReset (self):
 		currTime = time.time()
 		while (self.TX_busy == True):
 			if (abs (currTime - self.TX_lastTXtime) < 0.100): #100ms => TIMEOUT_TIME
 				currTime = time.time()
-			else
+			else:
 				self.reset ()
 				return
 	
@@ -306,7 +306,7 @@ class Rd (object):
 			return
 		
 		self.RX_buffFull = False
-		temp = self.RXbuff[RX_bufferFront].getPack ()
+		temp = self.RXbuff[self.RX_bufferFront].getPack ()
 		self.RX_bufferFront = self.RX_bufferFront + 1 if (self.RX_bufferFront + 1 != self.RX_buffSize) else 0		
 	
 		if self.RX_bufferRear == self.RX_bufferFront:
@@ -314,7 +314,7 @@ class Rd (object):
 		
 		return temp
 
-	def RXoverflow (self) #funcao para o usuario
+	def RXoverflow (self):
 		temp = self.RX_buffOverflow
 		self.RX_buffOverflow = False
 		return temp
@@ -382,7 +382,7 @@ class Rd (object):
 			addr += 1
 		return addr
 	
-	def ContiguousWrite (self, addr, mem, count):
+	def ContiguousRead (self, addr, mem, count):
 		for i in range (0, count):
 			mem[i] = self.getRegister (addr)
 			addr += 1
