@@ -1,7 +1,8 @@
 import RPi.GPIO as GPIO
 import time
 import spidev
-from mrf24j40_registers import register_fields, short_addr_registers, long_addr_registers
+import sys
+sys.path.append('../inc')
 from defines import *
 	
 
@@ -63,9 +64,9 @@ class Rd (object):
 			currAddr = self.ContiguousWrite (currAddr, self.TXbuff.dstPANID, 2)
 			currAddr = self.ContiguousWrite (currAddr, self.TXbuff.dstLONG, 8)
 
-		if ((self.TXbuff.frameControl[1] & DST_ADDR_MODE) != DST_NO_ADDR)
+		if (((self.TXbuff.frameControl[1] & DST_ADDR_MODE) != DST_NO_ADDR)
 		  and ((self.frameControl[1] & SRC_ADDR_MODE) != SRC_NO_ADDR)  
-		  and ((self.frameControl[0] & PAN_ID_COMP_FIELD) == PAN_ID_COMP_DISABLED): 
+		  and ((self.frameControl[0] & PAN_ID_COMP_FIELD) == PAN_ID_COMP_DISABLED)): 
 			currAddr = self.ContiguousWrite (currAddr, self.PANid, 2)
 
 		if (self.TXbuff.frameControl[1] & SRC_ADDR_MODE) == SRC_SHORT_ADDR:
@@ -169,8 +170,8 @@ class Rd (object):
 		self.TXbuff = TX ()	
 		self.RXbuff = [RX () for i in range (8)] #buffer size = 8
 
-		GPIO.setmode (GPIO.BOARD)
-		GPIO.setup (INTPIN, GPIO.IN)
+#		GPIO.setmode (GPIO.BOARD)
+#		GPIO.setup (INTPIN, GPIO.IN)
 #		GPIO.add_event_detect(INTPIN, GPIO.RISING, callback=self.intHandle)  
 
 	def intHandle (self, channel)
