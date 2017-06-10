@@ -3,9 +3,36 @@ import time
 import spidev
 import sys
 from defines import *
-	
 
-class TX (object):
+# os objetos RdStatus e Packt teram instancias entreges ao usuario para informa-lo sobre o status do
+# radio e para entrega-lo o pacote. As instancias serão uma espécie de "read-only", só servem para 
+# passar a informação ao usuário e são incapazes de fazer qualquer ação sobre o Rd
+class RdStatus (object):
+	def __init__ (self, channel, TX_busy, TX_awatingAck, TX_lastPackFail, TX_busyChannel,
+		      RX_buffEmpty, RX_buffFull, RX_buffOverflow):
+		self.channel = channel
+		self.TX_busy = TX_busy
+		self.TX_awatingAck = TX_awatingAck
+		self.TX_lastPackFail = TX_lastPackFail
+		self.TX_busyChannel = TX_busyChannel
+		self.RX_buffEmpty = RX_buffEmpty
+		self.RX_buffFull = RX_buffFull
+		self.RX_buffOverflow = RX_buffOverflow
+		
+class Packt (object):
+	def __init__ (self, payload, frameControl, seqNum, srcPANid, srcAddr, fcs, lqi, rssi):
+		self.payload = payload
+		self.seqNum = seqNum
+		self.srcPANid = srcPANid
+		self.srcAddr = srcAddr
+		self.fcs = fcs
+		self.lqi = lqi
+		self.rssi = rssi
+		# falta "decodificar" o frameControl
+		      
+# os objetos das classes TX e RX nao sao vistos nem manipulados pelo usuario,
+# eles existem para tornar a informacao manipulada pelo Rd mais organizada		      
+class TX (object): 
 	def __init__ (self):
 		self.seqNum = 0x00
 	
@@ -36,7 +63,8 @@ class RX (object):
 		self.lqi = bytearray (1)
 		self.rssi = bytearray (1)
 	def getPack (self):
-		return [self.payload, self.frameControl, self.seqNum, self.srcPANid, self.srcAddr, self.fcs, self.lqi, self.rssi]
+		packet = Packt (self.payload, self.frameControl, self.seqNum, self.dstPANid, self.srcAddr, self.fcs, self.lqi, self.rssi)
+		return packet
 		
 class Rd (object):
 	def _receive (self):
@@ -182,7 +210,7 @@ class Rd (object):
 			result = self.spi.xfer2(bytes)
 			return result[2]		
 
-	def __init__ (self, channel, srcAddrShort, srcAddrLong, srcPANid): #funcao para o usuario
+	def __init__ (self, channel, srcAddrShort, srcAddrLong, srcPANid): #funcao para o usuario (na inicializacao)
 				
 		self.startSPI ()
 		
@@ -314,11 +342,16 @@ class Rd (object):
 		
 		return temp
 
-	def RXoverflow (self):
+#	essa funcao provavelmente ta obsoleta, agr q fiz getRdStatus toda a informacao sobre o Rd pode ser obtida de uma vez	
+	def RXoverflow (self): # funcao para o usuario
 		temp = self.RX_buffOverflow
 		self.RX_buffOverflow = False
 		return temp
-		
+	
+	def getRdStatus (self): # funcao para o usuario
+		temp = RdStatus (self.channel, self.TX_busy, self.TX_awatingAck, self.TX_lastPackFail, 
+		      self.TX_busyChannel, self.RX_buffEmpty, self.RX_buffFull, self.RX_buffOverflow)
+		return temp
 	
 	def send (self, payload, PANID, ADDR, frameType, ackRequired, PANcomp, noSequenceNum, dstAddrMode, srcAddrMode): #funcao para o usuario
 
