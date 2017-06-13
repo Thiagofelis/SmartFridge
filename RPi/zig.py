@@ -28,7 +28,11 @@ class Packt (object):
 		self.fcs = fcs
 		self.lqi = lqi
 		self.rssi = rssi
-		# falta "decodificar" o frameControl
+		self.packetType = frameControl[0] & PACKET_TYPE
+		self.security = (frameControl[0] & SECURITY_FIELD) == SECURITY_ENABLED
+		self.ack = (frameControl[0] & ACK_REQUIRED_FIELD) == ACK_REQUIRED_ENABLED
+		self.panidComp = (frameControl[0] & PAN_ID_COMP_FIELD) == PAN_ID_COMP_ENABLED
+		self.seqNumComp = (frameControl[1] & SEQUENCE_NUM_SUP_FIELD) == SEQUENCE_NUM_SUP_ENABLED 
 		      
 # os objetos das classes TX e RX nao sao vistos nem manipulados pelo usuario,
 # eles existem para tornar a informacao manipulada pelo Rd mais organizada		      
@@ -63,7 +67,7 @@ class RX (object):
 		self.lqi = bytearray (1)
 		self.rssi = bytearray (1)
 	def getPack (self):
-		packet = Packt (self.payload, self.frameControl, self.seqNum, self.dstPANid, self.srcAddr, self.fcs, self.lqi, self.rssi)
+		packet = Packt (self.payload, self.frameControl, self.seqNum, self.srcPANid, self.srcAddr, self.fcs, self.lqi, self.rssi)
 		return packet
 		
 class Rd (object):
@@ -79,8 +83,9 @@ class Rd (object):
 		
 		currAddr = self.ContiguousRead (currAddr, self.RXbuff[self.RX_bufferRear].frameControl, 2)
 	
-		self.RXbuff[self.RX_bufferRear].seqNum = self.getRegister (currAddr)
-		currAddr += 1
+		if (self.RXbuff[self.RX_bufferRear].frameControl[1] & SEQUENCE_NUM_SUP_FIELD) == SEQUENCE_NUM_SUP_DISABLED:
+			self.RXbuff[self.RX_bufferRear].seqNum = self.getRegister (currAddr)
+			currAddr += 1
 		
 		#acks n tem panid
 		#n entendo mt bem essa parte, o zigbee em si ja faz o tratamento de ack, entao
@@ -103,11 +108,11 @@ class Rd (object):
 			
 		if (self.RXbuff[self.RX_bufferRear].frameControl[1] & SRC_ADDR_MODE) == SRC_SHORT_ADDR:
 			self.RXbuff[self.RX_bufferRear].srcAddr = bytearray (2)
-			currAddr = self.ContiguousRead (currAddr, self.RXbuff[self.RX_bufferRear].dstAddr, 2)
+			currAddr = self.ContiguousRead (currAddr, self.RXbuff[self.RX_bufferRear].srcAddr, 2)
 		
 		elif (self.RXbuff[self.RX_bufferRear].frameControl[1] & SRC_ADDR_MODE) == SRC_LONG_ADDR:
 			self.RXbuff[self.RX_bufferRear].srcAddr = bytearray (8)
-			currAddr = self.ContiguousRead (currAddr, self.RXbuff[self.RX_bufferRear].dstAddr, 8)
+			currAddr = self.ContiguousRead (currAddr, self.RXbuff[self.RX_bufferRear].srcAddr, 8)
 		
 		payloadSize = self.getRegister (0x300) - (currAddr - 0x301) - 2
 		self.RXbuff[self.RX_bufferRear].payload = bytearray (payloadSize)
@@ -360,10 +365,10 @@ class Rd (object):
 		if len(ADDR) != 4 and len(ADDR) != 16:
 			return ADDR_ERROR
 
-		if (len(ADDR) == 4 and dstAddrMode != SRC_SHORT_ADDR):
+		if (len(ADDR) == 4 and dstAddrMode != DST_SHORT_ADDR):
 			return ADDR_ERROR			
 	
-		if (len(ADDR) == 16 and dstAddrMode != SRC_LONG_ADDR):
+		if (len(ADDR) == 16 and dstAddrMode != DST_LONG_ADDR):
 			return ADDR_ERROR
 
 		if self.TX_busy == True:
