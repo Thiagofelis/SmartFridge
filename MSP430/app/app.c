@@ -5,7 +5,7 @@ int App_algumaLataPresente (lt *lata, int numero_latas)
 	int i;
 	for (i = 0; i < numero_latas; i++) // lembrando que numero_latas é um macro definido em main.c
 	{
-		if (LATA_VerificarPresenca2 (&lata[i]) == true)
+		if (LATA_EstaPresente (&lata[i]) == true)
 		{
 			return true;
 		}
@@ -13,14 +13,16 @@ int App_algumaLataPresente (lt *lata, int numero_latas)
 	return false;
 }
 
-void App_ativaIntPres (WORD canais_presenca)
+void App_ativaIntPres (unsigned int sinais_presenca1, unsigned int sinais_presenca2)
 {
-	P1IE |= canais_presenca;
+	P1IE |= sinais_presenca1;
+	P2IE |= sinais_presenca2;
 }
 
-void App_desativaIntPres (WORD canais_presenca)
+void App_desativaIntPres (unsigned int sinais_presenca1, unsigned int sinais_presenca2)
 {
-	P1IE &= ~canais_presenca;
+	P1IE &= ~sinais_presenca1;
+	P2IE &= ~sinais_presenca2;
 }
 
 void App_rstLatas (lt *lata, int numero_latas)
@@ -67,12 +69,12 @@ void App_attLedLatas (lt *lata, int numero_latas)
 	int i, j = 0;
 	for (i = 1; i < numero_latas; i++)
 	{
-		if (LATA_VerificarPresenca2 (&lata[i]) == false)
+		if (LATA_EstaPresente (&lata[i]) == false)
 		{
 			continue;
 		}
 		
-		if (LATA_VerificarPresenca2 (&lata[j]) == false)
+		if (LATA_EstaPresente (&lata[j]) == false)
 		{
 			j = i;
 			continue;
@@ -86,6 +88,15 @@ void App_attLedLatas (lt *lata, int numero_latas)
 	}
 	
 	/* Acende o led da lata j */
+}
+
+void App_salvarMedicoes (lt* lata, int numero_latas)
+{
+	int i = 0;
+	for (i = 0; i < numero_latas; i++)
+	{
+		LATA_SalvarMedicoes (&lata[i]);
+	}
 }
 
 void App_sleep10seg (unsigned int times)
@@ -123,6 +134,7 @@ void App_enviaMed (lt *lata, int numero_latas)
 	{
 		if (LATA_Enviar (&lata[i], s + 2 * k) == true)
 		{
+			
 			k += 2;
 		}
 	}
@@ -164,7 +176,7 @@ void App_configuraRadio ()
 	
 	zig_Init (17, longAddr, shortAddr, PANid);
 	
-	zig_TX_config (PACKET_TYPE_DATA, ACK_REQUIRED_DISABLED, PAN_ID_COMP_ENABLED, 
+	zig_TX_config (PACKET_TYPE_DATA, ACK_REQUIRED_ENABLED, PAN_ID_COMP_ENABLED, 
 				   SEQUENCE_NUM_SUP_DISABLED, DST_SHORT_ADDR, SRC_SHORT_ADDR);
 	
 	BYTE dstShortAddr[2] = {0x0c, 0x4f}, dstPANid[2] = {0xef, 0x4d}, dstLongAddr[8] = {0x3e, 0xd1, 0x8a, 0x09, 0x2a, 0xdc, 0x68, 0xff};	
@@ -172,24 +184,27 @@ void App_configuraRadio ()
 	zig_TX_configDstAddr (dstShortAddr, dstPANid);
 }
 
-
 void App_configuraMSP ()
 {
 	WDTCTL = WDTPW  + WDTHOLD; // Desativa WDT
 	/* Seta pinagem */
 	P2DIR = BIT3 + BIT2 + BIT0;  // 2.3: chip select, 2.2: ~rst, 2.0: wake
-	P2OUT = 0;
-	// Pulldown ja e selecionado no puc
+	P2OUT = BIT2;
+	P2IE = BIT1;
+	P2IES |= BIT1; // seleciona borda de descida
+	P2IFG &= ~BIT1;	
+	// Pulldown das presencas ja e selecionado no puc
 	
 }
 
-int _round (float i) //math.h ta dando problema 
+unsigned int _round (float i) //math.h ta dando problema 
 {
-	int k = (int) i;
+/*	unsigned int k = (int) i;
 	if ((i - (float)k) >= 0.5)
 		return (k + 1);
 	else
-		return k;
+		return k;*/			
+	return (unsigned int)(i + 0.5);
 }
 
 
@@ -208,11 +223,12 @@ int App_numDig (int a)
 	return num;
 }
 
-int App_tempMedia (int vec[])
+unsigned int App_tempMedia (unsigned int vec[])
 {
 	// Calculo do desvio padrao e da media
 	
-	int i, med = 0;
+	int i;
+	unsigned int med = 0;
 
 	for (i = 0; i < 20; i++)
 	{
@@ -228,10 +244,10 @@ int App_tempMedia (int vec[])
 	}
 	_dev = _dev/19;
 	_dev = sqrt (_dev);
-	int dev = _round(_dev);
+	unsigned int dev = (int) _round (_dev);
 
 	// Calcula nova media, sem os valores muito diferentes da media antiga
-	int nova_media = 0, num = 0;
+	unsigned int nova_media = 0, num = 0;
 
 	for (i = 0; i < 20; i++)
 	{
@@ -246,10 +262,12 @@ int App_tempMedia (int vec[])
 	return nova_media;
 }
 
+
+
 int App_pegarTemp (int x)
 {
 	double abs[10] = {5.24, 8.01, 10.0, 12.56, 20.24, 33.63, 57.67, 102.3, 188.2, 360.9};
-	int ord[10] = {400, 300, 200, 250, 100, 0, -100, -200, -300, -400};
+	int ord[10] = {400, 300, 250, 200, 100, 0, -100, -200, -300, -400};
 
 	// Converte a temp para um valor de resistencia em Kohm
 
@@ -273,65 +291,18 @@ int App_pegarTemp (int x)
 	return temp_final;
 }
 
-int App_lerCanal (int canal)
+unsigned int App_lerCanal (unsigned int pino)
 {
-	int i;
-	// canal = xy <=> porta x_y. ex. se canal = 24, é lida a porta 2_4
-	switch (canal)
+	if ( (pino & PX_X) == P1_X)
 	{
-		case 10:
-			i = P1IN & BIT0;
-			break;
-		case 11:
-			i = P1IN & BIT1;
-			break;
-		case 12:
-			i = P1IN & BIT2;
-			break;
-		case 13:
-			i = P1IN & BIT3;
-			break;
-		case 14:
-			i = P1IN & BIT4;
-			break;
-		case 15:
-			i = P1IN & BIT5;
-			break;
-		case 16:
-			i = P1IN & BIT6;
-			break;
-		case 17:
-			i = P1IN & BIT7;
-			break;
-		case 20:
-			i = P2IN & BIT0;
-			break;
-		case 21:
-			i = P2IN & BIT1;
-			break;
-		case 22:
-			i = P2IN & BIT2;
-			break;
-		case 23:
-			i = P2IN & BIT3;
-			break;
-		case 24:
-			i = P2IN & BIT4;
-			break;
-		case 25:
-			i = P2IN & BIT5;
-			break;
-		case 26:
-			i = P2IN & BIT6;
-			break;
-		case 27:
-			i = P2IN & BIT7;
-			break;
-	}	
-	return i;
+		pino &= ~P1_X;
+		return P1IN & pino; 
+	}
+		pino &= ~P2_X;
+		return P2IN & pino; 
 }
 
-void App_bitmap (unsigned char *mem, unsigned int id, int temp)
+void App_bitmap (unsigned char *mem, unsigned int id, unsigned int temp)
 {
 	// Converte para DDKK PPII IIII IIII 
 	//               BBBB BBBB AAAA AAAA
@@ -342,7 +313,7 @@ void App_bitmap (unsigned char *mem, unsigned int id, int temp)
 	// Soma-se 400 ao valor da temperatura, de modo que o menor valor
 	// possivel, -400, vira 0 e a variavel vira unsigned
 	
-	unsigned int new = temp + 400;
+	unsigned int new = temp; // + 400
 	unsigned int tempA, tempB;
 	tempA = 0xff & new;
 	tempB = 0xff00 & new;

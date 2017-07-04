@@ -1,5 +1,14 @@
 #include "zig.h"
 
+void Blink ()
+{
+	P1OUT ^= BIT0;
+	__delay_cycles (200000);
+	P1OUT ^= BIT0;
+	__delay_cycles (200000);	
+}
+
+
 void zig_RstSoft ()
 {
 	zig_SetShort (SOFTRST, 0x07); // SOFTWARE RESET
@@ -135,7 +144,7 @@ int zig_TX_Transmit () // funcionando :)
 		Radio.TX_awatingAck = 1;
 	}
 	//Radio.TX_busy = 1; // tenho q implementar isso depois
-	
+
 	return 0;
 }
 
@@ -309,16 +318,19 @@ void zig_TX_PayloadToBuffer (BYTEPNT payload, BYTE payloadSize)
 #pragma vector = PORT2_VECTOR
 __interrupt void Port2 (void) // RX/TX Interrupt routine
 {	
+
 	BYTE intLog = zig_GetShort (INTSTAT);
 	if (intLog & BIT0) // TX interruption
 	{
+		
 		Radio.TX_busy = 0;
 		if (Radio.TX_awatingAck)
 		{
 			Radio.TX_awatingAck = 0;
 			BYTE txLog = zig_GetShort (TXSTAT);
 			if (txLog & BIT0) // not successful?
-			{
+			{		
+				//Blink ();
 				Radio.TX_lastPackFail = 1;
 				if (txLog & BIT5) // fail due to busy channel?
 				{

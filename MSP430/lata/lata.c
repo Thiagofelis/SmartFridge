@@ -1,26 +1,17 @@
 #include "lata.h"
 
-int LATA_VerificarPresenca2 (lt* lp)
+int LATA_EstaPresente (lt* lp)
 {
-	return (App_lerCanal (lp->porta_presenca) != 0 ? true : false);
+	return (App_lerCanal (lp->canal_presenca) != 0 ? true : false);
 }
 
-int LATA_VerificarPresenca (int canal)
-{
-	
-	return (App_lerCanal (canal));
-}
 
 void LATA_SalvarMedicoes (lt* lp)
 {
 	if ( (lp->presenca_flag == 1) || (lp->medic_feitas != 20) )
 		return;
-	
-	int aux;
-	
-	aux = App_tempMedia (lp->amostra);
-	aux = App_pegarTemp (aux);
-	lp->tempfinal = aux;
+
+	lp->tempfinal = App_tempMedia (lp->amostra);
 }
 
 int LATA_PegarTemp (lt* lp)
@@ -49,20 +40,20 @@ int LATA_CarregarMedicoes (lt* lp, unsigned int medicoes[])
 	}
 
 	// Verifica se a lata a ter a temp medida esta presente
-	if (!LATA_VerificarPresenca (lp->porta_presenca))
+	if (LATA_EstaPresente (lp) == false)
 	{
 		lp->presenca_flag  = 1;
 		return -1;
 	}
 
 	// Se a medicao estiver fora do alcance do termistor, ela é descartada
-	if (!LATA_MedicaoValida ((int) medicoes[LATA_PosicaoVetor (lp->canal_temperatura)]))
+	if (!LATA_MedicaoValida (medicoes[LATA_PosicaoVetor (lp->canal_temperatura)]))
 	{
 		return 0;	
 	}
 
 	// Armazena a amostra no vetor correspondente a lata
-	lp->amostra[lp->medic_feitas] = (int) medicoes[LATA_PosicaoVetor (lp->canal_temperatura)];
+	lp->amostra[lp->medic_feitas] = medicoes[LATA_PosicaoVetor (lp->canal_temperatura)];
 	(lp->medic_feitas)++;
 	return 1;
 }
@@ -76,7 +67,7 @@ int LATA_MedicaoValida (unsigned int a)
 
 
 int LATA_PosicaoVetor (unsigned int a)
-{
+{ // Faz a correspondencia entre o canal do ADC medido e a posicao do valor medido no vetor de medicoes
 	int i;
 	
 	switch (a)
@@ -130,42 +121,46 @@ WORD LATA_PegarCanaisTemp (lt* lp)
 	return lp->canal_temperatura;	
 }
 
-void LATA_Iniciar (unsigned int tempcanal, int presscanal, lt *lp, unsigned int identific)
+void LATA_Iniciar (unsigned int tempcanal, unsigned int prescanal, lt *lp, unsigned int identific)
 {
 	lp->canal_temperatura = tempcanal;
-	lp->porta_presenca = presscanal;
+	lp->canal_presenca = prescanal;
 	lp->id = identific;
 	lp->ultimo_TX[0] = 0xff; // situacao impossivel, de modo que a primeira medicao valida feita vai ser necessariamente enviada
-	lp->ultimo_TX[1] = ' ';
+	lp->ultimo_TX[1] = ' '; // ^tem q olhar isso
 }
 
 int LATA_Enviar (lt* lp, BYTE* s)
 {
-	int a;
+	unsigned int a;
 
-	if ( (lp->presenca_flag == 1) )
+/*	if ( (lp->presenca_flag == 1) )
 	{
 		a = 0x1000; // valor para lata nao detectada
-		a -= 400;
+	//	a -= 400;
 	}
 	else 	
 	{
 		if ( (lp->medic_feitas != 20) )
 		{
 			a = 0x2000;  // valor para medicoes invalidas
-			a -= 400;
+		//	a -= 400;
 		}	
 		else
 		{
-			a = lp->tempfinal; 
+			*/   a = lp->tempfinal; /*
 		}
 	}
-	
+*/	
 	App_bitmap (s, lp->id, a);
 	
+	if (a == 0b1100000000)
+	{
+		Blink ();
+	}
 	if (memcmp (s, lp->ultimo_TX, 2 * sizeof (unsigned char)) != 0) // verifica se a mensagem a ser enviada é igual a ultima enviada
 	{
-		memcpy (lp->ultimo_TX, s, 2);
+		memcpy (lp->ultimo_TX, s, 2 * sizeof (unsigned char));
 		return true;
 	}
 	return false;

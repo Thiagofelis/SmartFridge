@@ -7,6 +7,8 @@
 #include "zigaddr.h"
 #include "def.h"
 
+void Blink ();
+
 void zig_RstSoft ();
 
 void zig_RstRF ();

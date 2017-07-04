@@ -9,6 +9,10 @@
 #define true 1
 #define false 0
 
+#define P1_X 0
+#define P2_X BIT8
+#define PX_X BIT8
+
 typedef unsigned char BYTE;
 typedef unsigned int WORD;
 typedef unsigned char* BYTEPNT;
