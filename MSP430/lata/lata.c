@@ -1,9 +1,14 @@
 #include "lata.h"
 
+int LATA_VerificarPresenca2 (lt* lp)
+{
+	return (App_lerCanal (lp->porta_presenca) != 0 ? true : false);
+}
+
 int LATA_VerificarPresenca (int canal)
 {
 	
-	return (Ler_Canal (canal));
+	return (App_lerCanal (canal));
 }
 
 void LATA_SalvarMedicoes (lt* lp)
@@ -13,9 +18,14 @@ void LATA_SalvarMedicoes (lt* lp)
 	
 	int aux;
 	
-	aux = Temp_Media (lp->amostra);
-	aux = Pegar_Temp (aux);
+	aux = App_tempMedia (lp->amostra);
+	aux = App_pegarTemp (aux);
 	lp->tempfinal = aux;
+}
+
+int LATA_PegarTemp (lt* lp)
+{
+	return lp->tempfinal;
 }
 
 int LATA_CarregarMedicoes (lt* lp, unsigned int medicoes[])
@@ -115,7 +125,7 @@ void LATA_Resetar (lt *lp)
 	lp->medic_feitas = 0;
 }
 
-unsigned int LATA_PegarCanais (lt* lp)
+WORD LATA_PegarCanaisTemp (lt* lp)
 {
 	return lp->canal_temperatura;	
 }
@@ -127,13 +137,11 @@ void LATA_Iniciar (unsigned int tempcanal, int presscanal, lt *lp, unsigned int 
 	lp->id = identific;
 	lp->ultimo_TX[0] = 0xff; // situacao impossivel, de modo que a primeira medicao valida feita vai ser necessariamente enviada
 	lp->ultimo_TX[1] = ' ';
-	lp->ultimo_TX[2] = '\0';
 }
 
-void LATA_Enviar (lt* lp)
+int LATA_Enviar (lt* lp, BYTE* s)
 {
 	int a;
-	char s[3];
 
 	if ( (lp->presenca_flag == 1) )
 	{
@@ -153,11 +161,12 @@ void LATA_Enviar (lt* lp)
 		}
 	}
 	
-	Bitmap (s, lp->id, a);
+	App_bitmap (s, lp->id, a);
 	
-	if (strcmp (s, lp->ultimo_TX) != 0) // verifica se a mensagem a ser enviada é igual a ultima enviada
+	if (memcmp (s, lp->ultimo_TX, 2 * sizeof (unsigned char)) != 0) // verifica se a mensagem a ser enviada é igual a ultima enviada
 	{
-		UART_Enviar (s);
-		strcpy (lp->ultimo_TX, s);
+		memcpy (lp->ultimo_TX, s, 2);
+		return true;
 	}
+	return false;
 }

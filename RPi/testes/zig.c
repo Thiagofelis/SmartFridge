@@ -58,6 +58,53 @@ void zig_SelChannel (BYTE channel)
 	zig_SetLong (RFCTRL0, ((channel - 11) << 4) | 0x03);
 	zig_RstRF ();
 }
+/*
+void zig_SetPANID (WORD PANID)
+{
+	BYTE PL = PANID & 0xff, PH = (PANID & 0xff00) >> 8;
+	zig_SetShort (PANIDL, PL);
+	zig_SetShort (PANIDH, PH);
+}
+	
+void zig_SetShortDevAddr (WORD ShortAddr)
+{
+	BYTE SAL = ShortAddr & 0xff, SAH = (ShortAddr & 0xff00) >> 8;
+	zig_SetShort (SADRL, SAL);
+	zig_SetShort (SADRH, SAH);
+}
+void zig_SetLongDevAddr (WORD LongAddr[4])
+{
+	BYTE LA[8];
+	BYTE i;
+	for (i = 0; i < (BYTE) 4; i++)
+	{
+		LA[i] = LongAddr[i] & 0xff;
+		LA[i + 1] = (LongAddr[i] & 0xff00) >> 8;
+	}
+	for (i = 0; i < (BYTE) 8; i++)
+	{
+		zig_SetShort (EADR0 + i, LA[i]);	
+	}
+}
+
+void zig_BuildTXPackage (BYTEPNT *TxPnt)
+{
+	Tx.frameType = PACKET_TYPE_DATA;
+	Tx.securityEnabled = 0;
+	Tx.framePending = 0;
+	Tx.ackRequest = 1;
+	Tx.panIDcomp = 1;
+	Tx.dstAddrMode = SHORT_ADDR_FIELD;
+	Tx.frameVersion = 0;
+	Tx.srcAddrMode = NO_ADDR_FIELD;
+	Tx.dstPANID = RadioStatus.MyPANID;
+	Tx.dstAddr = RadioStatus.MyShortAddress;
+	Tx.payload = txPayload;
+	
+	
+	
+}
+*/
 
 WORD zig_ContiguousWrite (WORD addr, BYTEPNT mem, int count)
 {
@@ -81,12 +128,13 @@ WORD zig_ContiguousRead (WORD addr, BYTEPNT mem, int count)
 	return addr;
 }
 
-int zig_TX_Transmit () // funcionando :)
+
+
+void zig_TX_Transmit () // funcionando :)
 {
-	
-	if (Radio.TX_busy == 1)
-		return -1;
-	
+
+//	while (Radio.TX_busy == 1);	
+	Blink (GREEN);
 	WORD currAddr = 0x02; // jump Header and Frame lenght, fill later
 	
 	// Write control frame
@@ -134,9 +182,7 @@ int zig_TX_Transmit () // funcionando :)
 	{
 		Radio.TX_awatingAck = 1;
 	}
-	//Radio.TX_busy = 1; // tenho q implementar isso depois
-	
-	return 0;
+	Radio.TX_busy = 1;
 }
 
 int zig_RX_Receive ()
@@ -202,8 +248,22 @@ int zig_RX_Receive ()
 	strncpy (rxPayload, PayloadPnt, PayloadSize);
 	
 	rxPayload[PayloadSize] = '\0';*/
-	return 0;
 }
+/*
+void zig_CheckInterrupt ()
+{
+	if (!(P2OUT & INTPIN)) // define INTPIN as the pin connected do INT for this to work
+	{
+		return;
+	}
+	
+	BYTE interrupt = zig_GetShort (INSTAT);
+	
+	if (interrupt & BIT3) // RX interrupt
+	{
+		//zig_RX ();
+	}
+}*/
 
 void zig_Init (BYTE channel, BYTE srcAddrLong[], BYTE srcAddrShort[], BYTE srcPANid[])
 {
@@ -309,28 +369,32 @@ void zig_TX_PayloadToBuffer (BYTEPNT payload, BYTE payloadSize)
 #pragma vector = PORT2_VECTOR
 __interrupt void Port2 (void) // RX/TX Interrupt routine
 {	
+	//Blink (RED); // Blinks sao testes
 	BYTE intLog = zig_GetShort (INTSTAT);
 	if (intLog & BIT0) // TX interruption
 	{
+		Blink (RED);
 		Radio.TX_busy = 0;
 		if (Radio.TX_awatingAck)
 		{
+	//		Blink (RED);
 			Radio.TX_awatingAck = 0;
 			BYTE txLog = zig_GetShort (TXSTAT);
 			if (txLog & BIT0) // not successful?
 			{
+	//			Blink (GREEN);
 				Radio.TX_lastPackFail = 1;
 				if (txLog & BIT5) // fail due to busy channel?
 				{
 					Radio.TX_busyChannel = 1;
 				}
 				else
-				{	
+				{	//Blink (GREEN);
 					Radio.TX_busyChannel = 0;
 				}
 			}
 			else
-			{	
+			{	//Blink (RED);
 				Radio.TX_lastPackFail = 0;
 			}
 		}
@@ -338,6 +402,8 @@ __interrupt void Port2 (void) // RX/TX Interrupt routine
 	if (intLog & BIT3) // RX interruption
 	{
 		// calls interrupt routine from other module
+		Blink (GREEN); //temporario, so para testes
+		//BlinkBinary (zig_GetLong (0x30e));
 	}
 	P2IFG &= ~BIT1;
 }

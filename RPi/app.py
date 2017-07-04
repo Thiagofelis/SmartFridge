@@ -1,7 +1,11 @@
 import RPi.GPIO as GPIO
 import sys
 from defines import *
+from app import *
 
+def intFunc (packt):
+	print packt.payload
+	
 def boardConfig ():
 	GPIO.setmode(GPIO.BOARD)
 	GPIO.setup (11, GPIO.OUT)

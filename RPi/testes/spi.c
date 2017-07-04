@@ -40,11 +40,11 @@ BYTE SPI_Send (BYTE data)
 	read = UCA0RXBUF;
 	return read;
 }
-/*
+
 void SPI_SlaveRst ()
 {
 	P1OUT &= ~BIT7;
 	__delay_cycles (5);
 	P1OUT |= BIT7;		
 	__delay_cycles (100);
-}*/
+}

@@ -6,9 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "general.h"
-#include "uart.h"
-
+#include "def.h"
 
 typedef struct lat
 {
@@ -20,9 +18,13 @@ typedef struct lat
 	unsigned int canal_temperatura;
 	int tempfinal, medic_feitas, presenca_flag, porta_presenca; // presenca_flag = 1 <=> lata ficou ausente durante a medicao
 	unsigned int id; // so 2 bit
-	char ultimo_TX[3]; // guarda string da ultima mensagem enviada
+	unsigned char ultimo_TX[3]; // guarda string da ultima mensagem enviada
 	int amostra[20];									
 } lt;
+
+#include "app.h"
+
+int LATA_PegarTemp (lt* lp);
 
 int LATA_MedicaoValida (unsigned int a);
 
@@ -30,12 +32,17 @@ void LATA_Resetar (lt *lp);
 
 void LATA_Iniciar (unsigned int tempcanal, int presscanal, lt *lp, unsigned int identific);
 
-void LATA_Enviar (lt* lp);
+int LATA_Enviar (lt* lp, BYTE* s);
 
 int LATA_CarregarMedicoes (lt* lp, unsigned int medicoes[]);
 
-unsigned int LATA_PegarCanais (lt* lp);
+unsigned int LATA_PegarCanaisTemp (lt* lp);
 
 int LATA_VerificarPresenca (int canal);
+
+int LATA_VerificarPresenca2 (lt* lp);
+
+int LATA_PosicaoVetor (unsigned int a);
+
 
 #endif

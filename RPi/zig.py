@@ -3,6 +3,7 @@ import time
 import spidev
 import sys
 from defines import *
+from app import *
 
 # os objetos RdStatus e Packt teram instancias entreges ao usuario para informa-lo sobre o status do
 # radio e para entrega-lo o pacote. As instancias serão uma espécie de "read-only", só servem para 
@@ -215,8 +216,9 @@ class Rd (object):
 			result = self.spi.xfer2(bytes)
 			return result[2]		
 
-	def __init__ (self, channel, srcAddrShort, srcAddrLong, srcPANid): #funcao para o usuario (na inicializacao)
-				
+	def __init__ (self, channel, srcAddrShort, srcAddrLong, srcPANid, intfunc = None): #funcao para o usuario (na inicializacao)
+		
+		
 		self.startSPI ()
 		
 		self.channel = channel
@@ -231,6 +233,7 @@ class Rd (object):
 		self.RX_buffOverflow = False
 		self.RX_buffSize = 8
 		self.TX_lastTXtime = 0
+		self.intFunc = intfunc
 	
 		# recomenda-se esperar 2ms apos o power on, eu espero 4ms		
 		time.sleep (0.004)
@@ -324,6 +327,9 @@ class Rd (object):
 			self.setRegister ("RXFLUSH", 0x01)
 			GPIO.add_event_detect(INTPIN, GPIO.FALLING, callback=self.intHandle)  
 			self.setRegister ("BBREG1", 0x00)
+			if intFunc != None: 
+				packt = self.getLastPckt()
+				intFunc (packt)
 			
 	def waitOrReset (self):
 		currTime = time.time()

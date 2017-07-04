@@ -5,7 +5,11 @@
 #include "msp430g2553.h"
 #include "spi.h"
 #include "zigaddr.h"
-#include "def.h"
+#include "general2.h"
+
+typedef unsigned char BYTE;
+typedef unsigned int WORD;
+typedef unsigned char* BYTEPNT;
 
 void zig_RstSoft ();
 
@@ -25,7 +29,7 @@ WORD zig_ContiguousWrite (WORD addr, BYTEPNT mem, int count);
 
 WORD zig_ContiguousRead (WORD addr, BYTEPNT mem, int count);
 
-int zig_TX_Transmit ();
+void zig_TX_Transmit ();
 
 int zig_RX_Receive ();
 
@@ -44,18 +48,21 @@ void zig_TX_PayloadToBuffer (BYTEPNT payload, BYTE payloadSize);
 
 typedef struct							
 {
-	BYTE		frameLength;		// bytes (m+n, per 802.15.4)  Does not count itself, 2 bytes of FCS, 1 of LQI, or 1 of RSSI.
+	BYTE		frameLength;			// bytes (m+n, per 802.15.4)  Does not count itself, 2 bytes of FCS, 1 of LQI, or 1 of RSSI.
 	BYTE		frmCntrlLow;
 	BYTE		frmCntrlHigh;
-	BYTE		frameNumber;		// packet sequence number
+	BYTE		frameNumber;			// packet sequence number
+
+	// from here down is NOT (necessarily) identical to FIFO contents
+
 	BYTE		dstPANid[2];
-	BYTE		dstAddr[8];			// only 1st 2 bytes used if short addr
+	BYTE		dstAddr[8];				// only 1st 2 bytes used if short addr
 	BYTE		srcPANid[2];
 	BYTE		srcAddr[8];
-	BYTE		payloadSize;   		// length of payload field
-	BYTEPNT		payload;			// points at payload start
-	BYTE		lqi;				// LQI value for the received packet
-	BYTE		rssi;
+	BYTE		payloadSize;			// length of payload field
+	BYTEPNT		payload;				// points at payload start
+	BYTE        lqi;					// LQI value for the received packet
+	BYTE        rssi;
 } Packet;
 
 typedef struct
@@ -72,10 +79,14 @@ typedef struct
 	
 } Rd; 
 
-Rd Radio; // Stores radio status
-Packet Tx, Rx; // TX and RX buffers
+Rd Radio;
+
+Packet Tx, Rx;
+
+//Packet RxBuffer[8];
 
 // Control Frame defines
+
 // Low Frame
 #define PACKET_TYPE_BEACON     				0b0
 #define PACKET_TYPE_DATA        			BIT0
@@ -104,4 +115,42 @@ Packet Tx, Rx; // TX and RX buffers
 #define SRC_LONG_ADDR						BIT6 | BIT7
 #define SRC_ADDR_MODE						BIT6 | BIT7
 
+
+
 #endif
+
+
+
+/*
+void zig_RstSoft ();
+
+void zig_RstRF ();
+
+BYTE zig_GetShort (BYTE address);
+	
+void zig_SetShort (BYTE address, BYTE value);
+
+BYTE zig_GetLong (WORD address);
+
+void zig_SetLong (WORD address, BYTE value);
+
+void zig_SelChannel (BYTE channel);
+
+void zig_SetPANID (WORD PANID);
+	
+void zig_SetShortDevAddr (WORD ShortAddr);
+
+void zig_SetLongDevAddr (WORD LongAddr[4]);
+
+WORD zig_ContigousWrite (WORD addr, BYTEPNT mem, int count);
+
+WORD zig_ContigousRead (WORD addr, BYTEPNT mem, int count);
+
+void zig_TX (BYTEPNT txPayload, BYTE txpayloadLength, unsigned int SequenceNumCounter);
+
+int zig_RX (BYTEPNT rxPayload);
+
+void zig_CheckInterrupt ();
+
+void zig_Init ();
+*/

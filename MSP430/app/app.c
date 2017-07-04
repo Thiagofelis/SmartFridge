@@ -1,6 +1,6 @@
+#include "app.h"
 
-
-int App_algumaLataPresente (lt *lata)
+int App_algumaLataPresente (lt *lata, int numero_latas)
 {
 	int i;
 	for (i = 0; i < numero_latas; i++) // lembrando que numero_latas é um macro definido em main.c
@@ -23,7 +23,7 @@ void App_desativaIntPres (WORD canais_presenca)
 	P1IE &= ~canais_presenca;
 }
 
-void App_rstLatas (lt *lata)
+void App_rstLatas (lt *lata, int numero_latas)
 {
 	int i;
 	for (i = 0; i < numero_latas; i++)
@@ -32,8 +32,9 @@ void App_rstLatas (lt *lata)
 	}
 }
 
-void App_medirLatas (lt *lata, WORD medicoes[])
+void App_medirLatas (lt *lata, WORD medicoes[], int numero_latas)
 {
+	int iii, jjj;
 	// Faz medicao ate ter 20 medicoes validas para cada lata, 40 tentativas no maximo	
 	for (iii = 0; iii < 40; iii++)
 	{
@@ -61,7 +62,7 @@ void App_medirLatas (lt *lata, WORD medicoes[])
 	}
 }
 
-void App_attLedLatas (lt *lata)
+void App_attLedLatas (lt *lata, int numero_latas)
 {
 	int i, j = 0;
 	for (i = 1; i < numero_latas; i++)
@@ -87,7 +88,17 @@ void App_attLedLatas (lt *lata)
 	/* Acende o led da lata j */
 }
 
-void App_enviaMed (lt *lata)
+void App_sleep10seg (unsigned int times)
+{
+	globalSeg = 23*times; // 10seg * times
+	CCTL0 = CCIE;                             // CCR0 interrupt enabled
+	CCR0 = 65535;
+	TACTL = TASSEL_2 + ID_3 + MC_2;                  // SMCLK, contmode
+
+	__bis_SR_register(LPM1_bits + GIE);       // Enter LPM0 w/ interrupt
+}
+/*
+void App_enviaMed (lt *lata, int numero_latas)
 {
 	BYTE s[3];
 	int i, j;
@@ -102,20 +113,45 @@ void App_enviaMed (lt *lata)
 			} while (j == FAIL); // interrupcao do timer vai contar e resetar o radio se demorar mt
 		}
 	}
-}
+}*/
 
-void App_configurarADC (WORDPNT medicoes, WORD canais_presenca)
+void App_enviaMed (lt *lata, int numero_latas)
 {
-	ADC_Configurar (medicoes, canais_presenca);
+	BYTE s[numero_latas * 2];
+	int i, j, k = 0;
+	for (i = 0; i < numero_latas; i++)
+	{
+		if (LATA_Enviar (&lata[i], s + 2 * k) == true)
+		{
+			k += 2;
+		}
+	}
+	
+	if (k == 0)
+	{
+		s[0] = 0xff;
+		k++;
+	}
+	
+	zig_TX_PayloadToBuffer (s, k);
+	do 
+	{
+		j = zig_TX_Transmit ();
+	} while (j == -1); // interrupcao do timer vai contar e resetar o radio se demorar mt TEM Q IMPLMENETAR ESSE TREM AINDA
 }
 
-WORD App_pegarCanaisPresenca (lt *lata)
+void App_configurarADC (WORD* medicoes, WORD canais_temp)
+{
+	ADC_Configurar (medicoes, canais_temp);
+}
+
+WORD App_pegarCanaisTemp (lt *lata, int numero_latas)
 {
 	WORD canais_presenca = 0;
-	int i;	
-	for (i = 0; j < numero_latas; j++)
+	int j;	
+	for (j = 0; j < numero_latas; j++)
 	{
-		canais_presenca += LATA_PegarCanais (&lata[j]);
+		canais_presenca += LATA_PegarCanaisTemp (&lata[j]);
 	}
 	return canais_presenca;
 }
@@ -124,22 +160,27 @@ void App_configuraRadio ()
 {
 	SPI_StartMaster ();
 	
-	BYTE shortAddr[2] = {0x21, 0x42}, PANid[2] = {0x31, 0x62}, longAddr[8] = {0x10, 0x29, 0x38, 0x47, 0x56, 0x65, 0x47, 0x38};
+	BYTE shortAddr[2] = {0x1a, 0xbc}, PANid[2] = {0xf2, 0x5a}, longAddr[8] = {0x11, 0x29, 0x04, 0x39, 0x7c, 0x22, 0x14, 0xae};
 	
-	zig_Init (11, longAddr, shortAddr, PANid);
+	zig_Init (17, longAddr, shortAddr, PANid);
 	
-	zig_TX_config (PACKET_TYPE_DATA, ACK_REQUIRED_ENABLED, PAN_ID_COMP_ENABLED, 
+	zig_TX_config (PACKET_TYPE_DATA, ACK_REQUIRED_DISABLED, PAN_ID_COMP_ENABLED, 
 				   SEQUENCE_NUM_SUP_DISABLED, DST_SHORT_ADDR, SRC_SHORT_ADDR);
 	
-	BYTE dstShortAddr[2] = {0x08, 0x97}, dstPANid[2] = {0x63, 0x72};
+	BYTE dstShortAddr[2] = {0x0c, 0x4f}, dstPANid[2] = {0xef, 0x4d}, dstLongAddr[8] = {0x3e, 0xd1, 0x8a, 0x09, 0x2a, 0xdc, 0x68, 0xff};	
 	
 	zig_TX_configDstAddr (dstShortAddr, dstPANid);
 }
+
 
 void App_configuraMSP ()
 {
 	WDTCTL = WDTPW  + WDTHOLD; // Desativa WDT
 	/* Seta pinagem */
+	P2DIR = BIT3 + BIT2 + BIT0;  // 2.3: chip select, 2.2: ~rst, 2.0: wake
+	P2OUT = 0;
+	// Pulldown ja e selecionado no puc
+	
 }
 
 int _round (float i) //math.h ta dando problema 
@@ -150,6 +191,7 @@ int _round (float i) //math.h ta dando problema
 	else
 		return k;
 }
+
 
 int App_numDig (int a)
 {
@@ -164,13 +206,6 @@ int App_numDig (int a)
 	if (abs (a) > 1000)
 		num++;
 	return num;
-}
-
-void App_configuraClock ()
-{ // acho q n precisa desses trem n
-	BCSCTL1 = CALBC1_1MHZ;     
-	DCOCTL = CALDCO_1MHZ;
-	BCSCTL2 = 0x00;     	
 }
 
 int App_tempMedia (int vec[])
@@ -296,7 +331,7 @@ int App_lerCanal (int canal)
 	return i;
 }
 
-void App_bitmap (char *mem, unsigned int id, int temp)
+void App_bitmap (unsigned char *mem, unsigned int id, int temp)
 {
 	// Converte para DDKK PPII IIII IIII 
 	//               BBBB BBBB AAAA AAAA
@@ -317,7 +352,6 @@ void App_bitmap (char *mem, unsigned int id, int temp)
 	//mem[0] = (char) tempB;
 	mem[0] = (char) (tempB | App_paridade (tempA, tempB));
 	mem[1] = (char) tempA;
-	mem[2] = '\0';
 }
 
 WORD App_paridade (unsigned int a, unsigned int b) // zero se par
@@ -341,6 +375,17 @@ WORD App_paridade (unsigned int a, unsigned int b) // zero se par
 	return ( (a << 2) | (b << 3) );
 	// IMPORTANTE: quando for demapear, retirar os bits de paridade
 	// antes de verificar a paridade
+}
+
+#pragma vector = TIMER0_A0_VECTOR //Timer0,TAIFG interrupt vector
+__interrupt void TimerA(void)
+{
+	globalSeg--;
+	if (globalSeg == 0)
+	{
+		TACTL = MC_0;
+		__bic_SR_register_on_exit (LPM1_bits + GIE); 
+	}
 }
 
 	

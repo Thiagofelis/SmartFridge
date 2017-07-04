@@ -1,7 +1,7 @@
 #include "adc.h"
 
 
-void ADC_Medir (int *medicoes)
+void ADC_Medir (unsigned int *medicoes)
 {
 	ADC10CTL0 &= ~ADC10IFG;
 	ADC10CTL0 |= ENC + ADC10SC;
@@ -11,7 +11,7 @@ void ADC_Medir (int *medicoes)
 }
 
 
-void ADC_Configurar (int *medicoes, unsigned int canais_set)
+void ADC_Configurar (unsigned int *medicoes, unsigned int canais_set)
 {	
 	ADC10CTL0 = ADC10ON + ADC10SHT_0 + MSC;
 

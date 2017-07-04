@@ -5,8 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void ADC_Medir (int *medicoes);
+void ADC_Medir (unsigned int *medicoes);
 
-void ADC_Configurar (int *medicoes, unsigned int canais_set);
+void ADC_Configurar (unsigned int *medicoes, unsigned int canais_set);
 
 #endif
