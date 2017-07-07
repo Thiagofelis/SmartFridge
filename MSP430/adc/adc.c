@@ -19,7 +19,7 @@ void ADC_Configurar (unsigned int *medicoes, unsigned int canais_set)
 
 	ADC10AE0 = canais_set;    
 
-	ADC10DTC1 = 0x08;
+	ADC10DTC1 = NUMERO_DE_CANAIS_DO_ADC;
 
 	ADC10SA = (short)&medicoes[0];
 }

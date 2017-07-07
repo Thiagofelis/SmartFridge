@@ -6,6 +6,8 @@
 
 // defines genericos
 
+#define BIT14 0b100000000000000
+
 #define true 1
 #define false 0
 

@@ -38,28 +38,28 @@ void App_medirLatas (lt *lata, WORD medicoes[], int numero_latas)
 {
 	int iii, jjj;
 	// Faz medicao ate ter 20 medicoes validas para cada lata, 40 tentativas no maximo	
-	for (iii = 0; iii < 40; iii++)
+	for (iii = 0; iii < MAX_TENTATIVAS_MEDICAO; iii++)
 	{
 		ADC_Medir (medicoes);
 		
-		int control_flag = 1;
-		int valor_retornado;	
+		int finalizou = true;
+		int medicao;	
 
 		// Carrega nos vetores de amostra de cada instancia de lata os valores medidos
 		for (jjj = 0; jjj < numero_latas; jjj++)
 		{
-			valor_retornado = LATA_CarregarMedicoes (&lata[jjj], medicoes);
+			medicao = LATA_CarregarMedicoes (&lata[jjj], medicoes);
 
 			// Verifica se a lata analisada esta ausente ou ja terminou as medicoes
-			if (!( (valor_retornado == 2) || (valor_retornado == -1) ))
-			{
-				control_flag = 0;
+			if ( (medicao != FIM_MEDICOES_COMPLETAS) && (medicao != FIM_LATA_FICOU_AUSENTE) )
+			{ // ou seja, as medicoes nao finalizaram
+				finalizou = false;
 			}
 		}
 
-		if (control_flag == 1)
+		if (finalizou == true)
 		{
-			break;
+			return;
 		}
 	}
 }
@@ -108,40 +108,23 @@ void App_sleep10seg (unsigned int times)
 
 	__bis_SR_register(LPM1_bits + GIE);       // Enter LPM0 w/ interrupt
 }
-/*
-void App_enviaMed (lt *lata, int numero_latas)
-{
-	BYTE s[3];
-	int i, j;
-	for (i = 0; i < numero_latas; i++)
-	{
-		if (LATA_Enviar (&lata[i], s) == true)
-		{
-			zig_TX_PayloadToBuffer (s, 3);
-			do 
-			{
-				j = zig_TX_Transmit ();
-			} while (j == FAIL); // interrupcao do timer vai contar e resetar o radio se demorar mt
-		}
-	}
-}*/
 
 void App_enviaMed (lt *lata, int numero_latas)
 {
-	BYTE s[numero_latas * 2];
+	BYTE s[numero_latas * TAMANHO_PACOTE];
 	int i, j, k = 0;
 	for (i = 0; i < numero_latas; i++)
 	{
-		if (LATA_Enviar (&lata[i], s + 2 * k) == true)
+		if (LATA_MontarPacote (&lata[i], s + TAMANHO_PACOTE * k) == PACOTE_DIFERENTE)
 		{
 			
-			k += 2;
+			k += TAMANHO_PACOTE;
 		}
 	}
 	
 	if (k == 0)
 	{
-		s[0] = 0xff;
+		s[0] = 0xff; // Oxff significa que nao a nada a enviar
 		k++;
 	}
 	
@@ -176,7 +159,7 @@ void App_configuraRadio ()
 	
 	zig_Init (17, longAddr, shortAddr, PANid);
 	
-	zig_TX_config (PACKET_TYPE_DATA, ACK_REQUIRED_ENABLED, PAN_ID_COMP_ENABLED, 
+	zig_TX_config (PACKET_TYPE_DATA, ACK_REQUIRED_DISABLED, PAN_ID_COMP_ENABLED, 
 				   SEQUENCE_NUM_SUP_DISABLED, DST_SHORT_ADDR, SRC_SHORT_ADDR);
 	
 	BYTE dstShortAddr[2] = {0x0c, 0x4f}, dstPANid[2] = {0xef, 0x4d}, dstLongAddr[8] = {0x3e, 0xd1, 0x8a, 0x09, 0x2a, 0xdc, 0x68, 0xff};	
@@ -186,7 +169,9 @@ void App_configuraRadio ()
 
 void App_configuraMSP ()
 {
-	WDTCTL = WDTPW  + WDTHOLD; // Desativa WDT
+	/* Desativa WDT */
+	WDTCTL = WDTPW  + WDTHOLD;
+	
 	/* Seta pinagem */
 	P2DIR = BIT3 + BIT2 + BIT0;  // 2.3: chip select, 2.2: ~rst, 2.0: wake
 	P2OUT = BIT2;
@@ -198,29 +183,8 @@ void App_configuraMSP ()
 }
 
 unsigned int _round (float i) //math.h ta dando problema 
-{
-/*	unsigned int k = (int) i;
-	if ((i - (float)k) >= 0.5)
-		return (k + 1);
-	else
-		return k;*/			
+{	
 	return (unsigned int)(i + 0.5);
-}
-
-
-int App_numDig (int a)
-{
-	int num = 1;
-	
-	if (a < 0)
-		num++;
-	if (abs (a) > 10)
-		num++;
-	if (abs (a) > 100)
-		num++;
-	if (abs (a) > 1000)
-		num++;
-	return num;
 }
 
 unsigned int App_tempMedia (unsigned int vec[])
@@ -230,26 +194,26 @@ unsigned int App_tempMedia (unsigned int vec[])
 	int i;
 	unsigned int med = 0;
 
-	for (i = 0; i < 20; i++)
+	for (i = 0; i < NUMERO_MEDICOES_NECESSARIAS; i++)
 	{
 		med += vec[i];
 	}
-	med = med/20;
+	med = med/NUMERO_MEDICOES_NECESSARIAS;
 
 	float _dev = 0;
 
-	for (i = 0; i < 20; i++)
+	for (i = 0; i < NUMERO_MEDICOES_NECESSARIAS; i++)
 	{
 		_dev += pow (vec[i] - med, 2);
 	}
-	_dev = _dev/19;
+	_dev = _dev/(NUMERO_MEDICOES_NECESSARIAS - 1);
 	_dev = sqrt (_dev);
 	unsigned int dev = (int) _round (_dev);
 
 	// Calcula nova media, sem os valores muito diferentes da media antiga
 	unsigned int nova_media = 0, num = 0;
 
-	for (i = 0; i < 20; i++)
+	for (i = 0; i < NUMERO_MEDICOES_NECESSARIAS; i++)
 	{
 		if ((abs (vec[i] - med)) <= (2 * dev))
 		{
@@ -302,52 +266,6 @@ unsigned int App_lerCanal (unsigned int pino)
 		return P2IN & pino; 
 }
 
-void App_bitmap (unsigned char *mem, unsigned int id, unsigned int temp)
-{
-	// Converte para DDKK PPII IIII IIII 
-	//               BBBB BBBB AAAA AAAA
-	// D sao os bits identificadores e I os bits do valor da temperatura
-	// (esse valor ocupa no maximo os 10 primeiros bits)
-	// os bits Ks sao onde sao sinalizados os erros e os Ps sao os bits de paridade
-	
-	// Soma-se 400 ao valor da temperatura, de modo que o menor valor
-	// possivel, -400, vira 0 e a variavel vira unsigned
-	
-	unsigned int new = temp; // + 400
-	unsigned int tempA, tempB;
-	tempA = 0xff & new;
-	tempB = 0xff00 & new;
-	tempB = tempB >> 8;
-	tempB = (id << 6) | tempB;
- 
-	//mem[0] = (char) tempB;
-	mem[0] = (char) (tempB | App_paridade (tempA, tempB));
-	mem[1] = (char) tempA;
-}
-
-WORD App_paridade (unsigned int a, unsigned int b) // zero se par
-{
-	// a = IIII IIII
-	// b = DDKK 00II <- 0s em BIT2 e BIT3 pois paridade ainda nao foi adicionada
-	
-	a ^= a >> 8;
-	a ^= a >> 4;
-	a ^= a >> 2;
-	a ^= a >> 1;
-	a = a & 1; // paridade em a
-	
-	b ^= b >> 8;
-	b ^= b >> 4;
-	b ^= b >> 2;
-	b ^= b >> 1;
-	b = b & 1; // paridade em b
-	
-	// 0000 0000 0000 ba00 <-localizacao dos bits de paridade no valor de retorno
-	return ( (a << 2) | (b << 3) );
-	// IMPORTANTE: quando for demapear, retirar os bits de paridade
-	// antes de verificar a paridade
-}
-
 #pragma vector = TIMER0_A0_VECTOR //Timer0,TAIFG interrupt vector
 __interrupt void TimerA(void)
 {
@@ -358,5 +276,3 @@ __interrupt void TimerA(void)
 		__bic_SR_register_on_exit (LPM1_bits + GIE); 
 	}
 }
-
-	

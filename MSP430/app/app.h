@@ -11,6 +11,20 @@
 #include "zig.h"
 #include "lata.h"
 
+#define MAX_TENTATIVAS_MEDICAO 40
+
+#define FIM_MEDICOES_COMPLETAS 2
+#define FIM_LATA_FICOU_AUSENTE -1
+#define CONTINUA_MEDICAO_INVALIDA 0
+#define CONTINUA_MEDICAO_VALIDA 1
+
+#define TAMANHO_PACOTE 2 //em bytes
+
+#define PACOTE_DIFERENTE 1
+#define PACOTE_REPETIU 0
+
+#define NUMERO_MEDICOES_NECESSARIAS 20	
+
 /* Utilizado para adormecer */
 unsigned int globalSeg;
 
@@ -32,17 +46,11 @@ void App_sleep10seg (unsigned int times);
 
 unsigned int _round (float i); //math.h ta dando problema 
 
-int App_numDig (int a);
-
 unsigned int App_tempMedia (unsigned int vec[]);
 
-int App_pegarTemp (int x);
+//int App_pegarTemp (int x);
 
 unsigned int App_lerCanal (unsigned int pino);
-
-void App_bitmap (unsigned char *mem, unsigned int id, unsigned int temp);
-
-WORD App_paridade (unsigned int a, unsigned int b);
 
 void App_configuraMSP ();
 

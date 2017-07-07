@@ -8,7 +8,7 @@ int LATA_EstaPresente (lt* lp)
 
 void LATA_SalvarMedicoes (lt* lp)
 {
-	if ( (lp->presenca_flag == 1) || (lp->medic_feitas != 20) )
+	if ( (lp->ficou_ausente == true) || (lp->medic_feitas != NUMERO_MEDICOES_NECESSARIAS) )
 		return;
 
 	lp->tempfinal = App_tempMedia (lp->amostra);
@@ -28,41 +28,41 @@ int LATA_CarregarMedicoes (lt* lp, unsigned int medicoes[])
 	// Retorna -1 se a lata nao necessita de medicoes, pois nao esta presente
 
 	// Verifica se em algum ponto das 20 medicoes, a lata deixou de estar presente
-	if (lp->presenca_flag == 1)
+	if (lp->ficou_ausente == true)
 	{
-		return -1;
+		return FIM_LATA_FICOU_AUSENTE;
 	}
 
 	// Caso a lata ja tenha 20 medicoes, nenhuma medicao a mais é feita
-	if (lp->medic_feitas == 20)
+	if (lp->medic_feitas == NUMERO_MEDICOES_NECESSARIAS)
 	{
-		return 2;
+		return FIM_MEDICOES_COMPLETAS;
 	}
 
 	// Verifica se a lata a ter a temp medida esta presente
 	if (LATA_EstaPresente (lp) == false)
 	{
-		lp->presenca_flag  = 1;
-		return -1;
+		lp->ficou_ausente  = 1;
+		return FIM_LATA_FICOU_AUSENTE;
 	}
 
 	// Se a medicao estiver fora do alcance do termistor, ela é descartada
-	if (!LATA_MedicaoValida (medicoes[LATA_PosicaoVetor (lp->canal_temperatura)]))
+	if (LATA_MedicaoValida (medicoes[LATA_PosicaoVetor (lp->canal_temperatura)]) == false)
 	{
-		return 0;	
+		return CONTINUA_MEDICAO_INVALIDA;	
 	}
 
 	// Armazena a amostra no vetor correspondente a lata
 	lp->amostra[lp->medic_feitas] = medicoes[LATA_PosicaoVetor (lp->canal_temperatura)];
 	(lp->medic_feitas)++;
-	return 1;
+	return CONTINUA_MEDICAO_VALIDA;
 }
 
 int LATA_MedicaoValida (unsigned int a)
 {
 	if ((a > 930) || (a < 145))
-		return 0;
-	return 1;
+		return false;
+	return true;
 }
 
 
@@ -112,7 +112,7 @@ int LATA_PosicaoVetor (unsigned int a)
 
 void LATA_Resetar (lt *lp)
 {
-	lp->presenca_flag = 0;	
+	lp->ficou_ausente = 0;	
 	lp->medic_feitas = 0;
 }
 
@@ -130,38 +130,91 @@ void LATA_Iniciar (unsigned int tempcanal, unsigned int prescanal, lt *lp, unsig
 	lp->ultimo_TX[1] = ' '; // ^tem q olhar isso
 }
 
-int LATA_Enviar (lt* lp, BYTE* s)
+int LATA_MontarPacote (lt* lp, BYTE* s)
 {
-	unsigned int a;
+	unsigned int val;
 
-/*	if ( (lp->presenca_flag == 1) )
+	if (lp->ficou_ausente == true)
 	{
-		a = 0x1000; // valor para lata nao detectada
-	//	a -= 400;
+		val = LATA_AUSENTE;
 	}
-	else 	
+	else
 	{
-		if ( (lp->medic_feitas != 20) )
+		if (lp->medic_feitas != NUMERO_MEDICOES_NECESSARIAS)
 		{
-			a = 0x2000;  // valor para medicoes invalidas
-		//	a -= 400;
-		}	
+			val = LATA_SEM_MEDICOES_VALIDAS;
+		}
 		else
 		{
-			*/   a = lp->tempfinal; /*
+			val = lp->tempfinal;
 		}
 	}
-*/	
-	App_bitmap (s, lp->id, a);
 	
-	if (a == 0b1100000000)
+	LATA_Bitmap (s, lp->id, val);
+	
+	if (memcmp (s, lp->ultimo_TX, TAMANHO_PACOTE * sizeof (unsigned char)) != 0) // verifica se a mensagem a ser enviada é igual a ultima enviada
 	{
-		Blink ();
+		memcpy (lp->ultimo_TX, s, TAMANHO_PACOTE * sizeof (unsigned char));
+		return PACOTE_DIFERENTE;
 	}
-	if (memcmp (s, lp->ultimo_TX, 2 * sizeof (unsigned char)) != 0) // verifica se a mensagem a ser enviada é igual a ultima enviada
+	return PACOTE_REPETIU;
+}
+
+void LATA_Bitmap (unsigned char *mem, unsigned int id, unsigned int temp)
+{
+	// Converte para DDKK PPII IIII IIII 
+	//               BBBB BBBB AAAA AAAA
+	// D sao os bits identificadores e I os bits do valor da temperatura
+	// (esse valor ocupa no maximo os 10 primeiros bits)
+	// os bits Ks sao onde sao sinalizados os erros e os Ps sao os bits de paridade
+	
+	unsigned int tempA, tempB;
+	
+	if (temp == LATA_AUSENTE)
 	{
-		memcpy (lp->ultimo_TX, s, 2 * sizeof (unsigned char));
-		return true;
+		tempA = 0;
+		tempB = (id << 6) | BIT4; // BIT4 => LATA_AUSENTE
 	}
-	return false;
+	else 
+	{
+		if (temp == LATA_SEM_MEDICOES_VALIDAS)
+		{
+			tempA = 0;
+			tempB = (id << 6) | BIT5; // BIT5 => LATA_SEM_MEDICOES_VALIDAS
+		}
+		else
+		{
+			tempA = 0xff & temp;
+			tempB = 0xff00 & temp;
+			tempB = tempB >> 8;
+			tempB = (id << 6) | tempB;
+		}
+	}
+	
+	mem[0] = (unsigned char) (tempB | LATA_Paridade (tempA, tempB));
+	mem[1] = (unsigned char) tempA;
+}
+
+unsigned int LATA_Paridade (unsigned int a, unsigned int b) 
+	// zero se par
+{
+	// a = IIII IIII
+	// b = DDKK 00II <- 0s em BIT2 e BIT3 pois paridade ainda nao foi adicionada
+	
+	a ^= a >> 8;
+	a ^= a >> 4;
+	a ^= a >> 2;
+	a ^= a >> 1;
+	a = a & 1; // paridade em a
+	
+	b ^= b >> 8;
+	b ^= b >> 4;
+	b ^= b >> 2;
+	b ^= b >> 1;
+	b = b & 1; // paridade em b
+	
+	// 0000 0000 0000 ba00 <-localizacao dos bits de paridade no valor de retorno
+	return ( (a << 2) | (b << 3) );
+	// IMPORTANTE: quando for demapear, retirar os bits de paridade
+	// antes de verificar a paridade
 }

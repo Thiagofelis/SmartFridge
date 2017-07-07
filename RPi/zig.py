@@ -5,9 +5,9 @@ import sys
 from defines import *
 from app import *
 
-# os objetos RdStatus e Packt teram instancias entreges ao usuario para informa-lo sobre o status do
-# radio e para entrega-lo o pacote. As instancias serão uma espécie de "read-only", só servem para 
-# passar a informação ao usuário e são incapazes de fazer qualquer ação sobre o Rd
+# os objetos RdStatus e Packt teram instancias entregues ao usuario para informa-lo sobre o status do
+# radio e para entrega-lo o pacote. As instancias serao uma especie de "read-only", so servem para
+# passar a informacao ao usuario e sao incapazes de fazer qualquer acao sobre o Rd
 class RdStatus (object):
 	def __init__ (self, channel, TX_busy, TX_awatingAck, TX_lastPackFail, TX_busyChannel,
 		      RX_buffEmpty, RX_buffFull, RX_buffOverflow):

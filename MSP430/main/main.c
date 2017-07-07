@@ -35,17 +35,18 @@ void main (void)
 	/* Parte que repete */
 	while (true)
 	{
-
-		if (App_algumaLataPresente (lata, numero_latas) == false) // Analisa o arranjo de latas para ver se alguma está presente
+		
+// estou pensando em tirar essa parte do codigo para que sempre seja mandada uma mensagem a cada x segundos, para saber q a geladeira ta ligada		
+/*		if (App_algumaLataPresente (lata, numero_latas) == false) // Analisa o arranjo de latas para ver se alguma está presente
 		{	
 			App_ativaIntPres (sinais_presenca1, sinais_presenca2);
 			
 			__bis_SR_register (LPM4_bits + GIE); // CPUOFF até que seja detectada uma lata
 			
-			/* Apost a interrupção de colocar lata no slot, o código continua aqui */
+			// Apost a interrupção de colocar lata no slot, o código continua aqui 
 			App_desativaIntPres (sinais_presenca1, sinais_presenca2);
 		}
-
+*/
 		App_rstLatas (lata, numero_latas); // Reseta medicoes
 		
 		App_medirLatas (lata, medicoes, numero_latas);
