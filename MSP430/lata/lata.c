@@ -10,8 +10,8 @@ void LATA_SalvarMedicoes (lt* lp)
 {
 	if ( (lp->ficou_ausente == true) || (lp->medic_feitas != NUMERO_MEDICOES_NECESSARIAS) )
 		return;
-
-	lp->tempfinal = App_tempMedia (lp->amostra);
+	
+	lp->tempfinal = LATA_tempMedia (lp->amostra);	
 }
 
 int LATA_PegarTemp (lt* lp)
@@ -112,7 +112,7 @@ int LATA_PosicaoVetor (unsigned int a)
 
 void LATA_Resetar (lt *lp)
 {
-	lp->ficou_ausente = 0;	
+	lp->ficou_ausente = false;	
 	lp->medic_feitas = 0;
 }
 
@@ -141,7 +141,7 @@ int LATA_MontarPacote (lt* lp, BYTE* s)
 	else
 	{
 		if (lp->medic_feitas != NUMERO_MEDICOES_NECESSARIAS)
-		{
+		{ 
 			val = LATA_SEM_MEDICOES_VALIDAS;
 		}
 		else
@@ -178,7 +178,7 @@ void LATA_Bitmap (unsigned char *mem, unsigned int id, unsigned int temp)
 	else 
 	{
 		if (temp == LATA_SEM_MEDICOES_VALIDAS)
-		{
+		{ 	
 			tempA = 0;
 			tempB = (id << 6) | BIT5; // BIT5 => LATA_SEM_MEDICOES_VALIDAS
 		}
@@ -217,4 +217,48 @@ unsigned int LATA_Paridade (unsigned int a, unsigned int b)
 	return ( (a << 2) | (b << 3) );
 	// IMPORTANTE: quando for demapear, retirar os bits de paridade
 	// antes de verificar a paridade
+}
+
+unsigned int LATA_tempMedia (unsigned int vec[])
+{
+	// Calculo do desvio padrao e da media
+	
+	int i;
+	unsigned int med = 0;
+
+	for (i = 0; i < NUMERO_MEDICOES_NECESSARIAS; i++)
+	{
+		med += vec[i];
+	}
+	med = med/NUMERO_MEDICOES_NECESSARIAS;
+
+	float _dev = 0;
+
+	for (i = 0; i < NUMERO_MEDICOES_NECESSARIAS; i++)
+	{
+		_dev += pow (vec[i] - med, 2);
+	}
+	_dev = _dev/(NUMERO_MEDICOES_NECESSARIAS - 1);
+	_dev = sqrt (_dev);
+	unsigned int dev = (int) _round (_dev);
+
+	// Calcula nova media, sem os valores muito diferentes da media antiga
+	unsigned int nova_media = 0, num = 0;
+
+	for (i = 0; i < NUMERO_MEDICOES_NECESSARIAS; i++)
+	{
+		if ((abs (vec[i] - med)) <= (2 * dev))
+		{
+			num++;
+			nova_media += vec[i];
+		}
+	}
+	nova_media = nova_media / num;
+
+	return nova_media;
+}
+
+unsigned int _round (float i) //math.h ta dando problema 
+{	
+	return (unsigned int)(i + 0.5);
 }

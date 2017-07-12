@@ -7,13 +7,17 @@ dstPAN = "f25a"
 dstLONG = "112904397c2214ae"
 dstSHORT = "1abc"
 
-def intFunc (packt):
-	if packt.srcAddr != dstLONG and packt.srcAddr != dstSHORT:
+def intFunct (packt):
+	print "oi"
+	if packt.srcAddr != bytearray.fromhex(dstLONG) and packt.srcAddr != bytearray.fromhex(dstSHORT):
+		print "i"
 		return
 	if len(packt.payload) == 1:
+		print "o"
 		return
 	num_mesg = len(packt.payload)/2
 	for i in range(num_mesg):
+		print packt.payload[i]
 		if (packt.payload[i] & 0b110000) == 0:
 			temp = ((packt.payload[i] & 0b11) << 8) | packt.payload[i + 1]
 		elif (packt.payload[i] & 0b110000) == 0b010000:

@@ -14,27 +14,31 @@ dstPAN = "f25a"
 dstLONG = "112904397c2214ae"
 dstSHORT = "1abc"
 
-s = bytearray.fromhex("00000f111111")
+s = bytearray.fromhex("f1a56791")
 
 boardConfig ()
+
+def foi():
+	print "foi"
 
 Radio = Rd (17, srcSHORT, srcLONG, srcPAN) #canal 17
 
 
   
 	
-#Radio.send (s, dstPAN, dstSHORT, PACKET_TYPE_DATA, ACK_REQUIRED_DISABLED, PAN_ID_COMP_DISABLED, 
-#				   SEQUENCE_NUM_SUP_DISABLED, DST_SHORT_ADDR, SRC_SHORT_ADDR)
+Radio.send (s, dstPAN, dstSHORT, PACKET_TYPE_DATA, ACK_REQUIRED_ENABLED, PAN_ID_COMP_DISABLED, SEQUENCE_NUM_SUP_DISABLED, DST_SHORT_ADDR, SRC_SHORT_ADDR)
 
-time.sleep (3)
+time.sleep (4)
+
+RT = Radio.getRdStatus ()
+print RT.TX_lastPackFail
+print RT.TX_awatingAck
+
 a = Radio.getLastPckt()
-print a
-print a[0][0]
-print a[0][1]
-print a[0][2]
-print a[0][3]
-print a[1][0]
-print a[1][1]
+print a.payload[0]
+print a.payload[1]
+print a.payload[2]
+print a.payload[3]
 
 while True:
 	pass

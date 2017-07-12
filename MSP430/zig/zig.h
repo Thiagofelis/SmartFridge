@@ -2,10 +2,27 @@
 #define ZIG_H
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "msp430g2553.h"
 #include "spi.h"
 #include "zigaddr.h"
 #include "def.h"
+#include "app.h"
+
+// APROXIMADAMENTE 160 BYTES SAO UTILIZADOS NESSE MODULO
+
+#define FAIL_BUSY -1
+
+#define BUFFER_SIZE 2
+	
+#define MAX_RX_PACKET_SIZE 40 
+
+/*
+	se os enderecos forem todos short, 17 bytes sao utilizados no que nao for payload
+	sobra entao 23 bytes para o payload, deve caber
+*/
+
+unsigned char buffer[BUFFER_SIZE][MAX_RX_PACKET_SIZE];
 
 void Blink ();
 
@@ -29,7 +46,7 @@ WORD zig_ContiguousRead (WORD addr, BYTEPNT mem, int count);
 
 int zig_TX_Transmit ();
 
-int zig_RX_Receive ();
+void zig_RX_getLastPckt ();
 
 void zig_CheckInterrupt ();
 
@@ -42,40 +59,58 @@ void zig_configRadioAddr (BYTE srcAddrLong[], BYTE srcAddrShort[], BYTE srcPANid
 
 void zig_TX_configDstAddr (BYTE dstAddr[], BYTE dstPANid[]);
 
+void zig_reset ();
+
 void zig_TX_PayloadToBuffer (BYTEPNT payload, BYTE payloadSize);
 
 typedef struct							
-{
+{ // 44 bytes 
 	BYTE		frameLength;		// bytes (m+n, per 802.15.4)  Does not count itself, 2 bytes of FCS, 1 of LQI, or 1 of RSSI.
 	BYTE		frmCntrlLow;
 	BYTE		frmCntrlHigh;
-	BYTE		frameNumber;		// packet sequence number
-	BYTE		dstPANid[2];
-	BYTE		dstAddr[8];			// only 1st 2 bytes used if short addr
+	BYTE		seqNum;
 	BYTE		srcPANid[2];
 	BYTE		srcAddr[8];
 	BYTE		payloadSize;   		// length of payload field
-	BYTEPNT		payload;			// points at payload start
+	BYTE		payload[25];		// points at payload start
+	BYTE		fcs[2];
 	BYTE		lqi;				// LQI value for the received packet
 	BYTE		rssi;
-} Packet;
+} PacketRx;
+
+PacketRx Rx;
+
+typedef struct							
+{ // 15 bytes
+	BYTE		frmCntrlLow;
+	BYTE		frmCntrlHigh;
+	BYTE		seqNum;
+	BYTE		dstPANid[2];
+	BYTE		dstAddr[8];			// only 1st 2 bytes used if short addr
+	BYTE		payloadSize;   		// length of payload field
+	BYTE*		payload;			// points at payload start
+} PacketTx;
+PacketTx Tx;
 
 typedef struct
-{
+{ // 23 bytes
 	BYTE		PANid[2];
 	BYTE		addrShort[2];
 	BYTE		addrLong[8];
 	BYTE		channel;
-	BYTE		seqNum;
-	BYTE 		TX_busy;
-	BYTE		TX_awatingAck;
-	BYTE		TX_lastPackFail;
-	BYTE		TX_busyChannel;
-	
+	BYTE		TX_busy						:1; // not really a byte :p
+	BYTE		TX_awatingAck				:1;
+	BYTE		TX_lastPackFail				:1;
+	BYTE		TX_busyChannel				:1;
+	BYTE		RX_buffRear;
+	BYTE		RX_buffFront;
+	BYTE		RX_lastPackWasTruncated		:1;
+	BYTE		RX_empty					:1;
+	BYTE		RX_full						:1;
+	BYTE		RX_lastPackWasIgnored		:1;
 } Rd; 
 
 Rd Radio; // Stores radio status
-Packet Tx, Rx; // TX and RX buffers
 
 // Control Frame defines
 // Low Frame

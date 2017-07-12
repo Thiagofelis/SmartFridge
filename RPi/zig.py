@@ -267,7 +267,11 @@ class Rd (object):
 
 		GPIO.setmode (GPIO.BOARD)
 		GPIO.setup (INTPIN, GPIO.IN)
+		global ignoreCalls
+		ignoreCalls = False
 		GPIO.add_event_detect(INTPIN, GPIO.FALLING, callback=self.intHandle)  
+		if GPIO.input(INTPIN) == 0: #int ja aconteceu
+			self.intHandle(INTPIN)		
 
 	def reset (self):
 		GPIO.remove_event_detect(INTPIN)
@@ -302,8 +306,13 @@ class Rd (object):
 		GPIO.add_event_detect(INTPIN, GPIO.FALLING, callback=self.intHandle)  
 		
 	def intHandle (self, channel):
+		global ignoreCalls
+		if ignoreCalls == True:
+			return		
 		if channel != INTPIN:
 			return
+		ignoreCalls = True
+		#GPIO.remove_event_detect(INTPIN)
 		info = self.getRegister ("INTSTAT")
 		
 		if info & 0b1 == 0b1: #int TX
@@ -319,18 +328,26 @@ class Rd (object):
 						self.TX_busyChannel = False
 				else:
 					self.TX_lastPackFail = False
-			
+             
+	                if GPIO.input(INTPIN) == 0: #int aconteceu durante a funcao
+        	                self.intHandle(INTPIN)
+
+			#GPIO.add_event_detect(INTPIN, GPIO.FALLING, callback=self.intHandle)
+			ignoreCalls = False
+		
 		if info & 0b1000 == 0b1000: # int RX
-			GPIO.remove_event_detect(INTPIN)
 			self.setRegister ("BBREG1", 0b100)			
 			self._receive ()
-			self.setRegister ("RXFLUSH", 0x01)
-			GPIO.add_event_detect(INTPIN, GPIO.FALLING, callback=self.intHandle)  
-			self.setRegister ("BBREG1", 0x00)
-			if intFunc != None: 
+			self.setRegister ("RXFLUSH", 0x01)  
+			if self.intFunc != None: 
 				packt = self.getLastPckt()
-				intFunc (packt)
-			
+				self.intFunc (packt)		
+			#GPIO.add_event_detect(INTPIN, GPIO.FALLING, callback=self.intHandle)
+			self.setRegister ("BBREG1", 0x00)
+			ignoreCalls = False
+	
+		return
+		
 	def waitOrReset (self):
 		currTime = time.time()
 		while (self.TX_busy == True):

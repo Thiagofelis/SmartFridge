@@ -18,10 +18,10 @@
 #define PACOTE_DIFERENTE 1
 #define PACOTE_REPETIU 0
 
-#define LATA_AUSENTE BIT14
-#define LATA_SEM_MEDICOES_VALIDAS BIT0 | BIT14
+#define LATA_AUSENTE 1024
+#define LATA_SEM_MEDICOES_VALIDAS 1025
 
-#define NUMERO_MEDICOES_NECESSARIAS 20	
+#define NUMERO_MEDICOES_NECESSARIAS 10	
 
 typedef struct lat
 {
@@ -30,10 +30,12 @@ typedef struct lat
 	// medic_feitas guarda o numero de medicoes feitas ate o momento e presenca_flag indica se a lata esta presente
 	// durante todo o processo de medicao (condicao para a amostra ser tratada)
 	// porta_presenca guarda o numero da porta utilizada para verificar a presenca (ex. 21 se refere a porta 2_1)
-	unsigned int canal_temperatura, canal_presenca;
+	unsigned int canal_temperatura :8;
+	unsigned int canal_presenca :9;	
 	unsigned int tempfinal;
-	int medic_feitas, ficou_ausente; // ficou_ausente = 1 <=> lata ficou ausente durante a medicao
-	unsigned int id; // so 2 bit
+	int medic_feitas;
+	int ficou_ausente :1; // ficou_ausente = 1 <=> lata ficou ausente durante a medicao
+	unsigned int id :2;
 	unsigned char ultimo_TX[TAMANHO_PACOTE + 1]; // guarda string da ultima mensagem enviada
 	unsigned int amostra[NUMERO_MEDICOES_NECESSARIAS];									
 } lt;
@@ -63,5 +65,9 @@ int LATA_PosicaoVetor (unsigned int a);
 WORD LATA_Paridade (unsigned int a, unsigned int b);
 
 void LATA_Bitmap (unsigned char *mem, unsigned int id, unsigned int temp);
+
+unsigned int LATA_tempMedia (unsigned int vec[]);
+
+unsigned int _round (float i); //math.h ta dando problema 
 
 #endif

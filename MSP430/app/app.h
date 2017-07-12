@@ -11,7 +11,7 @@
 #include "zig.h"
 #include "lata.h"
 
-#define MAX_TENTATIVAS_MEDICAO 40
+#define MAX_TENTATIVAS_MEDICAO 20
 
 #define FIM_MEDICOES_COMPLETAS 2
 #define FIM_LATA_FICOU_AUSENTE -1
@@ -23,10 +23,22 @@
 #define PACOTE_DIFERENTE 1
 #define PACOTE_REPETIU 0
 
-#define NUMERO_MEDICOES_NECESSARIAS 20	
+#define NUMERO_MEDICOES_NECESSARIAS 10
+
+#define FAIL_BUSY -1
 
 /* Utilizado para adormecer */
-unsigned int globalSeg;
+volatile unsigned int globalSeg; // n sei se precisa do volatile
+
+void App_delayMs (unsigned int ms);
+
+void App_configuraClk ();
+
+void App_sleep1seg (unsigned int times);
+
+void App_enviar (unsigned char *s, unsigned char size);
+
+void App_salvarMedicoes (lt* lata, int numero_latas);
 
 int App_algumaLataPresente (lt *lata, int numero_latas);
 
@@ -44,10 +56,6 @@ void App_enviaMed (lt *lata, int numero_latas);
 
 void App_sleep10seg (unsigned int times);
 
-unsigned int _round (float i); //math.h ta dando problema 
-
-unsigned int App_tempMedia (unsigned int vec[]);
-
 //int App_pegarTemp (int x);
 
 unsigned int App_lerCanal (unsigned int pino);
@@ -58,6 +66,6 @@ void App_configuraRadio ();
 
 void App_configurarADC (WORD *medicoes, WORD canais_presenca);
 
-WORD App_pegarCanaisTemp (lt *lata, int numero_latas);
+//WORD App_pegarCanaisTemp (lt *lata, int numero_latas);
 
 #endif

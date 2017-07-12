@@ -7,6 +7,8 @@
 
 unsigned int sinais_presenca1, sinais_presenca2, canais_temp;
 
+
+// LEMBRETE: NAO BOTE DELAYS EM INTERRUPCOES
 void main (void)
 {
 	P1DIR = BIT0;
@@ -59,6 +61,9 @@ void main (void)
 		
 		/* Esperar 1 min */
 		//App_sleep10seg (1); 
+		
+		
+		__delay_cycles (200000);
 	}
 }
 

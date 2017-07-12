@@ -1,5 +1,22 @@
 #include "app.h"
 
+void App_delayMs (unsigned int ms)
+{
+	unsigned int i;
+	for (i = 0; i < ms; i++)
+	{
+		__delay_cycles (1000);
+	}
+}
+
+void App_configuraClk ()
+{
+	/* Configure the clock module - MCLK = 1MHz */
+	DCOCTL = 0;
+	BCSCTL1 = CALBC1_1MHZ;
+	DCOCTL = CALDCO_1MHZ;
+}
+
 int App_algumaLataPresente (lt *lata, int numero_latas)
 {
 	int i;
@@ -109,10 +126,20 @@ void App_sleep10seg (unsigned int times)
 	__bis_SR_register(LPM1_bits + GIE);       // Enter LPM0 w/ interrupt
 }
 
+void App_sleep1seg (unsigned int times)
+{
+	globalSeg = 23*times; // 10seg * times
+	CCTL0 = CCIE;                             // CCR0 interrupt enabled
+	CCR0 = 6553;
+	TACTL = TASSEL_2 + ID_3 + MC_2;                  // SMCLK, contmode
+
+	__bis_SR_register(LPM1_bits + GIE);       // Enter LPM0 w/ interrupt
+}
+
 void App_enviaMed (lt *lata, int numero_latas)
 {
 	BYTE s[numero_latas * TAMANHO_PACOTE];
-	int i, j, k = 0;
+	int i, k = 0;
 	for (i = 0; i < numero_latas; i++)
 	{
 		if (LATA_MontarPacote (&lata[i], s + TAMANHO_PACOTE * k) == PACOTE_DIFERENTE)
@@ -128,11 +155,30 @@ void App_enviaMed (lt *lata, int numero_latas)
 		k++;
 	}
 	
-	zig_TX_PayloadToBuffer (s, k);
-	do 
+	App_enviar (s, k);
+}
+
+void App_enviar (unsigned char *s, unsigned char size)
+{
+	int j;
+	zig_TX_PayloadToBuffer (s, size);
+	
+	j = zig_TX_Transmit ();
+	
+	int i = 0;
+	
+	while (j == FAIL_BUSY)
 	{
+		if (i == 10)
+		{ // se nao ficar disponivel em 100 ms agnt reseta o radio
+			zig_reset ();
+			zig_TX_Transmit ();
+			break;
+		}
+		App_delayMs (10);
+		i++;
 		j = zig_TX_Transmit ();
-	} while (j == -1); // interrupcao do timer vai contar e resetar o radio se demorar mt TEM Q IMPLMENETAR ESSE TREM AINDA
+	}
 }
 
 void App_configurarADC (WORD* medicoes, WORD canais_temp)
@@ -159,7 +205,7 @@ void App_configuraRadio ()
 	
 	zig_Init (17, longAddr, shortAddr, PANid);
 	
-	zig_TX_config (PACKET_TYPE_DATA, ACK_REQUIRED_DISABLED, PAN_ID_COMP_ENABLED, 
+	zig_TX_config (PACKET_TYPE_DATA, ACK_REQUIRED_ENABLED, PAN_ID_COMP_ENABLED, 
 				   SEQUENCE_NUM_SUP_DISABLED, DST_SHORT_ADDR, SRC_SHORT_ADDR);
 	
 	BYTE dstShortAddr[2] = {0x0c, 0x4f}, dstPANid[2] = {0xef, 0x4d}, dstLongAddr[8] = {0x3e, 0xd1, 0x8a, 0x09, 0x2a, 0xdc, 0x68, 0xff};	
@@ -175,58 +221,12 @@ void App_configuraMSP ()
 	/* Seta pinagem */
 	P2DIR = BIT3 + BIT2 + BIT0;  // 2.3: chip select, 2.2: ~rst, 2.0: wake
 	P2OUT = BIT2;
-	P2IE = BIT1;
+	//P2IE = BIT1; <<so é ativado na funcao de inicializacao do radio
 	P2IES |= BIT1; // seleciona borda de descida
 	P2IFG &= ~BIT1;	
 	// Pulldown das presencas ja e selecionado no puc
 	
 }
-
-unsigned int _round (float i) //math.h ta dando problema 
-{	
-	return (unsigned int)(i + 0.5);
-}
-
-unsigned int App_tempMedia (unsigned int vec[])
-{
-	// Calculo do desvio padrao e da media
-	
-	int i;
-	unsigned int med = 0;
-
-	for (i = 0; i < NUMERO_MEDICOES_NECESSARIAS; i++)
-	{
-		med += vec[i];
-	}
-	med = med/NUMERO_MEDICOES_NECESSARIAS;
-
-	float _dev = 0;
-
-	for (i = 0; i < NUMERO_MEDICOES_NECESSARIAS; i++)
-	{
-		_dev += pow (vec[i] - med, 2);
-	}
-	_dev = _dev/(NUMERO_MEDICOES_NECESSARIAS - 1);
-	_dev = sqrt (_dev);
-	unsigned int dev = (int) _round (_dev);
-
-	// Calcula nova media, sem os valores muito diferentes da media antiga
-	unsigned int nova_media = 0, num = 0;
-
-	for (i = 0; i < NUMERO_MEDICOES_NECESSARIAS; i++)
-	{
-		if ((abs (vec[i] - med)) <= (2 * dev))
-		{
-			num++;
-			nova_media += vec[i];
-		}
-	}
-	nova_media = nova_media / num;
-
-	return nova_media;
-}
-
-
 
 int App_pegarTemp (int x)
 {
