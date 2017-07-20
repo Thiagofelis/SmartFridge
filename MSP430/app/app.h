@@ -30,6 +30,8 @@
 /* Utilizado para adormecer */
 volatile unsigned int globalSeg; // n sei se precisa do volatile
 
+void App_gravarTemp (unsigned char *s_temp, unsigned char *index, unsigned char lat, lt* lata, int numero_latas);
+
 void App_delayMs (unsigned int ms);
 
 void App_configuraClk ();
@@ -37,6 +39,8 @@ void App_configuraClk ();
 void App_sleep1seg (unsigned int times);
 
 void App_enviar (unsigned char *s, unsigned char size);
+
+void App_converterMedicoesEmTemp (lt* lata, int numero_latas);
 
 void App_salvarMedicoes (lt* lata, int numero_latas);
 
@@ -52,11 +56,9 @@ void App_medirLatas (lt *lata, WORD medicoes[], int numero_latas);
 
 void App_attLedLatas (lt *lata, int numero_latas);
 
-void App_enviaMed (lt *lata, int numero_latas);
+//void App_enviaMed (lt *lata, int numero_latas);
 
 void App_sleep10seg (unsigned int times);
-
-//int App_pegarTemp (int x);
 
 unsigned int App_lerCanal (unsigned int pino);
 

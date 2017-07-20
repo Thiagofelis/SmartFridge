@@ -23,6 +23,10 @@
 
 #define NUMERO_MEDICOES_NECESSARIAS 10	
 
+#define PONTOS_A_SEREM_INTERPOLADOS 4
+
+#define TEMP_INVALIDA 0b111111111111
+
 typedef struct lat
 {
 	// canal_temperatura guarda o bit correspondente ao canal utilizado para cada medicao
@@ -30,21 +34,28 @@ typedef struct lat
 	// medic_feitas guarda o numero de medicoes feitas ate o momento e presenca_flag indica se a lata esta presente
 	// durante todo o processo de medicao (condicao para a amostra ser tratada)
 	// porta_presenca guarda o numero da porta utilizada para verificar a presenca (ex. 21 se refere a porta 2_1)
-	unsigned int canal_temperatura :8;
-	unsigned int canal_presenca :9;	
-	unsigned int tempfinal;
-	int medic_feitas;
-	int ficou_ausente :1; // ficou_ausente = 1 <=> lata ficou ausente durante a medicao
-	unsigned int id :2;
-	unsigned char ultimo_TX[TAMANHO_PACOTE + 1]; // guarda string da ultima mensagem enviada
+	unsigned int canal_temperatura : 8;
+	unsigned int canal_presenca    : 9;	
+	unsigned int tempfinal         :10;
+	unsigned int medic_feitas      : 4; // ATENCAO, precisa mudar se NUMERO_MEDICOES_NECESSARIAS mudar
+	unsigned int ficou_ausente     : 1; // ficou_ausente = 1 <=> lata ficou ausente durante a medicao
+	unsigned int id                : 2;
+//	unsigned char ultimo_TX[TAMANHO_PACOTE + 1]; // guarda string da ultima mensagem enviada
+	unsigned char medicoes_x[PONTOS_A_SEREM_INTERPOLADOS];
+	unsigned int medicoes_y[PONTOS_A_SEREM_INTERPOLADOS];	
+	unsigned char ultimo_x; // soma 1 a cada minuto q passa
 	unsigned int amostra[NUMERO_MEDICOES_NECESSARIAS];									
 } lt;
 
 #include "app.h"
 
-int LATA_PegarTemp (lt* lp);
+void LATA_SalvarMedicoes (lt *lp);
 
-void LATA_SalvarMedicoes (lt* lp);
+unsigned int LATA_converterParaTemp (unsigned int x);
+
+unsigned int LATA_PegarTemp (lt* lp);
+
+void LATA_ConverterMedicoesEmTemp (lt* lp);
 
 int LATA_MedicaoValida (unsigned int a);
 
@@ -52,7 +63,7 @@ void LATA_Resetar (lt *lp);
 
 void LATA_Iniciar (unsigned int tempcanal, unsigned int prescanal, lt *lp, unsigned int identific);
 
-int LATA_MontarPacote (lt* lp, BYTE* s);
+//int LATA_MontarPacote (lt* lp, BYTE* s);
 
 int LATA_CarregarMedicoes (lt* lp, unsigned int medicoes[]);
 

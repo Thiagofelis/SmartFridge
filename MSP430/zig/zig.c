@@ -260,11 +260,11 @@ int zig_RX_Receive ()
 	return 0;
 }*/
 
-void zig_RX_getLastPckt ()
+int zig_RX_getLastPckt ()
 {
 	if (Radio.RX_empty == true)
 	{
-		return;
+		return false;
 	}
 
 	Rx.frameLength = buffer[Radio.RX_buffFront][0];
@@ -321,6 +321,7 @@ void zig_RX_getLastPckt ()
 	{
 		Radio.RX_empty = true;
 	}
+	return true;
 }
 
 void zig_Init (BYTE channel, BYTE srcAddrLong[], BYTE srcAddrShort[], BYTE srcPANid[])
@@ -431,7 +432,7 @@ void zig_TX_PayloadToBuffer (BYTE* payload, BYTE payloadSize)
 	Tx.payloadSize = payloadSize;
 }
  
-
+/*
 #pragma vector = PORT2_VECTOR
 __interrupt void Port2 (void) // RX/TX Interrupt routine
 {	
@@ -497,4 +498,4 @@ __interrupt void Port2 (void) // RX/TX Interrupt routine
 		}
 		P2IFG &= ~BIT1;
 	}
-}
+}*/

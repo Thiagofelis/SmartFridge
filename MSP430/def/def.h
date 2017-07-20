@@ -15,6 +15,35 @@
 #define P2_X BIT8
 #define PX_X BIT8
 
+//define para intType
+#define TIMER BIT0
+#define RX BIT1
+#define LATA BIT2
+#define TIMER_IS_ON BIT7
+#define SLEEPING BIT6
+
+//define para mensagens
+
+//primera mesagem de controle
+#define TEMP_LATA_0 BIT0
+#define TEMP_LATA_1 BIT1
+#define TEMP_LATA_2 BIT2
+#define TEMP_LATA_TODAS 0b111
+#define SETAR_TEMP_DE_0 BIT3 
+#define SETAR_TEMP_DE_1 BIT4
+#define SETAR_TEMP_DE_2 BIT5
+#define PING BIT6
+//segunda mesagem de controle
+#define PREVISAO_LATA_0 BIT0
+#define PREVISAO_LATA_1 BIT1
+#define PREVISAO_LATA_2 BIT2
+
+// quando tiver que mandar algo, a ordem sera
+// TEMP_LATA 0 a 2, PREVISAO_LATA 0 a 2
+
+//define de pino
+#define ZIG_INTPIN BIT1
+
 typedef unsigned char BYTE;
 typedef unsigned int WORD;
 typedef unsigned char* BYTEPNT;

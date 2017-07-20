@@ -57,7 +57,7 @@ void main (void)
 		
 //		App_attLedLatas (lata, numero_latas); // Atualiza a led de modo a indicar a mais gelada
 		
-		App_enviaMed (lata, numero_latas);
+	//	App_enviaMed (lata, numero_latas);
 		
 		/* Esperar 1 min */
 		//App_sleep10seg (1); 

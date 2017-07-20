@@ -46,7 +46,7 @@ WORD zig_ContiguousRead (WORD addr, BYTEPNT mem, int count);
 
 int zig_TX_Transmit ();
 
-void zig_RX_getLastPckt ();
+int zig_RX_getLastPckt ();
 
 void zig_CheckInterrupt ();
 

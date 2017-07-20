@@ -9,6 +9,81 @@ void App_delayMs (unsigned int ms)
 	}
 }
 
+void App_salvarMedicoes (lt* lata, int numero_latas)
+{
+	int i;
+	for (i = 0; i < numero_latas; i++) 
+	{
+		LATA_SalvarMedicoes (&lata[i]);
+	}
+}
+
+void App_gravarTemp (unsigned char *s_temp, unsigned char *index, unsigned char lat, lt* lata, int numero_latas)
+{
+	unsigned int j, k;
+	char i, flag = 0;
+	char numero_de_medicoes_a_enviar = 0;
+	unsigned char ii = 0, lat_temp = lat;
+	while (lat_temp)
+	{
+		if (lat_temp & BIT0)
+		{
+			numero_de_medicoes_a_enviar++;			
+		}
+		lat_temp = lat_temp >> 1; 
+	}
+
+	/*for (i = 0; i < numero_de_medicoes_a_enviar ; i++)
+	{
+		App_delayMs (500);
+		P1OUT ^= BIT0;
+	}*/
+	
+	if ( (numero_de_medicoes_a_enviar % 2) != 0)
+	{
+		flag = 1;	
+	}
+	numero_de_medicoes_a_enviar /= 2;
+	
+	for (i = 0; i < numero_de_medicoes_a_enviar; i++)
+	{
+		while (!(lat & BIT0))
+		{
+			ii++;
+			lat = lat >> 1; 
+		}
+		j = LATA_PegarTemp (&lata[(int)ii]);
+		ii++;
+		lat = lat >> 1; 
+		
+		while (!(lat & BIT0))
+		{
+			ii++;
+			lat = lat >> 1; 
+		}
+		k = LATA_PegarTemp (&lata[(int)ii]);
+		ii++;
+		lat = lat >> 1; 
+		
+		s_temp[0 + *index] = j >> 4;
+		s_temp[1 + *index] = (j << 4) | (k >> 8);
+		s_temp[2 + *index] = k;
+		*index += 3;
+	}
+	if (flag)
+	{		
+		while (!(lat & BIT0))
+		{
+			ii++;
+			lat = lat >> 1; 
+		}
+		j = LATA_PegarTemp (&lata[(int)ii]);
+		s_temp[0 + *index] = j >> 8;
+		s_temp[1 + *index] = j;
+		*index += 2;
+	}
+}
+
 void App_configuraClk ()
 {
 	/* Configure the clock module - MCLK = 1MHz */
@@ -20,7 +95,7 @@ void App_configuraClk ()
 int App_algumaLataPresente (lt *lata, int numero_latas)
 {
 	int i;
-	for (i = 0; i < numero_latas; i++) // lembrando que numero_latas é um macro definido em main.c
+	for (i = 0; i < numero_latas; i++)
 	{
 		if (LATA_EstaPresente (&lata[i]) == true)
 		{
@@ -107,35 +182,28 @@ void App_attLedLatas (lt *lata, int numero_latas)
 	/* Acende o led da lata j */
 }
 
-void App_salvarMedicoes (lt* lata, int numero_latas)
+void App_converterMedicoesEmTemp (lt* lata, int numero_latas)
 {
 	int i = 0;
 	for (i = 0; i < numero_latas; i++)
 	{
-		LATA_SalvarMedicoes (&lata[i]);
+		LATA_ConverterMedicoesEmTemp (&lata[i]);
 	}
 }
 
-void App_sleep10seg (unsigned int times)
-{
-	globalSeg = 23*times; // 10seg * times
-	CCTL0 = CCIE;                             // CCR0 interrupt enabled
-	CCR0 = 65535;
-	TACTL = TASSEL_2 + ID_3 + MC_2;                  // SMCLK, contmode
-
-	__bis_SR_register(LPM1_bits + GIE);       // Enter LPM0 w/ interrupt
-}
-
 void App_sleep1seg (unsigned int times)
-{
-	globalSeg = 23*times; // 10seg * times
+{ // FUNCIONA :)
+	globalSeg = 5 * times; 
 	CCTL0 = CCIE;                             // CCR0 interrupt enabled
-	CCR0 = 6553;
-	TACTL = TASSEL_2 + ID_3 + MC_2;                  // SMCLK, contmode
-
-	__bis_SR_register(LPM1_bits + GIE);       // Enter LPM0 w/ interrupt
+	CCR0 = 25001;
+	TACTL = TASSEL_2 + ID_3 + MC_1;                  // TASSEL = SMCLK, ID = /8, MC = COUNTS TO CCR0
+	/*
+		f = 10^6 / 8 , t = 8 * 10^-6
+		t * 25000 * 5 = 1
+	*/
+	__bis_SR_register (LPM1_bits);       // Enter LPM1
 }
-
+/*
 void App_enviaMed (lt *lata, int numero_latas)
 {
 	BYTE s[numero_latas * TAMANHO_PACOTE];
@@ -157,7 +225,7 @@ void App_enviaMed (lt *lata, int numero_latas)
 	
 	App_enviar (s, k);
 }
-
+*/
 void App_enviar (unsigned char *s, unsigned char size)
 {
 	int j;
@@ -228,33 +296,6 @@ void App_configuraMSP ()
 	
 }
 
-int App_pegarTemp (int x)
-{
-	double abs[10] = {5.24, 8.01, 10.0, 12.56, 20.24, 33.63, 57.67, 102.3, 188.2, 360.9};
-	int ord[10] = {400, 300, 250, 200, 100, 0, -100, -200, -300, -400};
-
-	// Converte a temp para um valor de resistencia em Kohm
-
-	double res;
-	res = ( 33 / (1023 - (double) x) ) *  (double)x;
-
-	// Pesquisa no vetor as abiscissas em volta de res
-	int i = 0;
-	while ( !((res > abs[i]) && (res < abs[i + 1])) )
-	{
-		i++;
-	}
-
-	// Calcula temp correspondente
-	int temp_final;
-
-	double calc = (res - abs[i]) * (ord[i] - ord[i + 1]) / (abs[i] - abs[i + 1]);
-
-	temp_final = ord[i] + calc;
-
-	return temp_final;
-}
-
 unsigned int App_lerCanal (unsigned int pino)
 {
 	if ( (pino & PX_X) == P1_X)
@@ -265,7 +306,7 @@ unsigned int App_lerCanal (unsigned int pino)
 		pino &= ~P2_X;
 		return P2IN & pino; 
 }
-
+/*
 #pragma vector = TIMER0_A0_VECTOR //Timer0,TAIFG interrupt vector
 __interrupt void TimerA(void)
 {
@@ -275,4 +316,4 @@ __interrupt void TimerA(void)
 		TACTL = MC_0;
 		__bic_SR_register_on_exit (LPM1_bits + GIE); 
 	}
-}
+}*/

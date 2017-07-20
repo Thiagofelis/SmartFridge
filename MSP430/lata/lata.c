@@ -5,17 +5,41 @@ int LATA_EstaPresente (lt* lp)
 	return (App_lerCanal (lp->canal_presenca) != 0 ? true : false);
 }
 
+unsigned int LATA_converterParaTemp (unsigned int x)
+{ // ATENCAO, AGR ESSA FUNCAO INTERPOLA PARA VALORES ENTRE 0 E 800, EM Q 0 E -40C E 800 40C
+	float abs[10] = {5.24, 8.01, 10.0, 12.56, 20.24, 33.63, 57.67, 102.3, 188.2, 360.9};
+	unsigned int ord[10] = {800, 700, 650, 600, 500, 400, 300, 200, 100, 0};
 
-void LATA_SalvarMedicoes (lt* lp)
+	// Converte a temp para um valor de resistencia em Kohm
+
+	float res;
+	res = ( 33 / (1023 - (float) x) ) *  (float)x;
+
+	// Pesquisa no vetor as abiscissas em volta de res
+	int i = 0;
+	while ( !((res > abs[i]) && (res < abs[i + 1])) )
+	{
+		i++;
+	}
+
+	// Calcula temp correspondente
+	float calc = (res - abs[i]) * (ord[i] - ord[i + 1]) / (abs[i] - abs[i + 1]);
+
+	return ord[i] + calc;
+}
+
+void LATA_ConverterMedicoesEmTemp (lt* lp)
 {
 	if ( (lp->ficou_ausente == true) || (lp->medic_feitas != NUMERO_MEDICOES_NECESSARIAS) )
 		return;
 	
-	lp->tempfinal = LATA_tempMedia (lp->amostra);	
+	lp->tempfinal = LATA_converterParaTemp (LATA_tempMedia (lp->amostra));	
 }
 
-int LATA_PegarTemp (lt* lp)
+unsigned int LATA_PegarTemp (lt* lp)
 {
+	if ( (lp->ficou_ausente == true) || (lp->medic_feitas != NUMERO_MEDICOES_NECESSARIAS) )
+		return TEMP_INVALIDA;
 	return lp->tempfinal;
 }
 
@@ -110,6 +134,38 @@ int LATA_PosicaoVetor (unsigned int a)
 	return i;
 }
 
+void LATA_SalvarMedicoes (lt *lp)
+{
+	if ( (lp->ficou_ausente == true) || (lp->medic_feitas != NUMERO_MEDICOES_NECESSARIAS) )
+		return;
+	
+	if (lp->ultimo_x < 4)
+	{
+		lp->medicoes_x[lp->ultimo_x] = lp->ultimo_x;
+		lp->medicoes_y[lp->ultimo_x] = lp->tempfinal;
+	} // as primeiras 4 medicoes sao guardadas
+	else
+	{
+		if (lp->ultimo_x < 40)
+		{ // a partir da 5, as medicoes sao guardadas a cada 5 minutos
+			if ( (((lp->ultimo_x) % 20) % 5) == 0 )
+			{
+				lp->medicoes_x[((lp->ultimo_x) % 20) / 5] = lp->ultimo_x;
+				lp->medicoes_y[((lp->ultimo_x) % 20) / 5] = lp->tempfinal;
+			}
+		}
+		else
+		{ // a partir da 40o medicao, as medicoes sao guardadas a cada 8 minutos
+			if ( (((lp->ultimo_x) % 32) % 8) == 0 )
+			{
+				lp->medicoes_x[((lp->ultimo_x) % 32) / 8] = lp->ultimo_x;
+				lp->medicoes_y[((lp->ultimo_x) % 32) / 8] = lp->tempfinal;
+			}
+		}
+	}
+	lp->ultimo_x++;
+}
+
 void LATA_Resetar (lt *lp)
 {
 	lp->ficou_ausente = false;	
@@ -126,10 +182,11 @@ void LATA_Iniciar (unsigned int tempcanal, unsigned int prescanal, lt *lp, unsig
 	lp->canal_temperatura = tempcanal;
 	lp->canal_presenca = prescanal;
 	lp->id = identific;
-	lp->ultimo_TX[0] = 0xff; // situacao impossivel, de modo que a primeira medicao valida feita vai ser necessariamente enviada
-	lp->ultimo_TX[1] = ' '; // ^tem q olhar isso
+	lp->ultimo_x = 0;
+	//lp->ultimo_TX[0] = 0xff; // situacao impossivel, de modo que a primeira medicao valida feita vai ser necessariamente enviada
+//	lp->ultimo_TX[1] = ' '; // ^tem q olhar isso
 }
-
+/*
 int LATA_MontarPacote (lt* lp, BYTE* s)
 {
 	unsigned int val;
@@ -158,7 +215,7 @@ int LATA_MontarPacote (lt* lp, BYTE* s)
 		return PACOTE_DIFERENTE;
 	}
 	return PACOTE_REPETIU;
-}
+}*/
 
 void LATA_Bitmap (unsigned char *mem, unsigned int id, unsigned int temp)
 {
