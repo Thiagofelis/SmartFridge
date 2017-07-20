@@ -9,6 +9,38 @@ void App_delayMs (unsigned int ms)
 	}
 }
 
+void App_setarTempDesejada (unsigned char *s, lt* lata, int numero_latas)
+{
+	char i;
+	char flag = false;
+	/*
+	false := aaaa aaaa - aaaa bbbb - bbbb bbbb  
+	         ^
+	true  := aaaa aaaa - aaaa bbbb - bbbb bbbb  
+						      ^
+	*/
+	char index = 1; 
+	for (i = 0; i < numero_latas; i++)
+	{
+		if (s[0] & (1 << i))
+		{
+			
+			if (flag == false)
+			{
+				LATA_SetarTempDesejada (&lata[(int)i], (s[(int)index] << 4) | ((s[(int)index + 1] & 0b11110000) >> 4));
+				index += 1;
+				flag = true;
+			}
+			else
+			{
+				LATA_SetarTempDesejada (&lata[(int)i], ((s[(int)index] & 0b1111) << 8) | s[(int)index + 1]);
+				index += 2;
+				flag = false;	
+			}
+		}
+	}
+}
+
 void App_salvarMedicoes (lt* lata, int numero_latas)
 {
 	int i;
@@ -16,6 +48,17 @@ void App_salvarMedicoes (lt* lata, int numero_latas)
 	{
 		LATA_SalvarMedicoes (&lata[i]);
 	}
+}
+
+unsigned char App_lataAtingiuTemp (lt* lata, int numero_latas)
+{
+	char i;
+	unsigned char return_value = 0;
+	for (i = 0; i < numero_latas; i++)
+	{
+		return_value |= LATA_AtingiuTemp (&lata[(int)i]) << i;
+	}
+	return return_value;
 }
 
 void App_gravarTemp (unsigned char *s_temp, unsigned char *index, unsigned char lat, lt* lata, int numero_latas)

@@ -27,6 +27,10 @@
 
 #define TEMP_INVALIDA 0b111111111111
 
+#define NAO_TEM 900
+
+#define PAROU 0xff
+
 typedef struct lat
 {
 	// canal_temperatura guarda o bit correspondente ao canal utilizado para cada medicao
@@ -37,6 +41,7 @@ typedef struct lat
 	unsigned int canal_temperatura : 8;
 	unsigned int canal_presenca    : 9;	
 	unsigned int tempfinal         :10;
+	unsigned int temp_desejada     :10;
 	unsigned int medic_feitas      : 4; // ATENCAO, precisa mudar se NUMERO_MEDICOES_NECESSARIAS mudar
 	unsigned int ficou_ausente     : 1; // ficou_ausente = 1 <=> lata ficou ausente durante a medicao
 	unsigned int id                : 2;
@@ -48,6 +53,10 @@ typedef struct lat
 } lt;
 
 #include "app.h"
+
+void LATA_SetarTempDesejada (lt* lp, unsigned int temp);
+
+unsigned char LATA_AtingiuTemp (lt* lp);
 
 void LATA_SalvarMedicoes (lt *lp);
 

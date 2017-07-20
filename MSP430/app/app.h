@@ -30,9 +30,13 @@
 /* Utilizado para adormecer */
 volatile unsigned int globalSeg; // n sei se precisa do volatile
 
+void App_setarTempDesejada (unsigned char *s, lt* lata, int numero_latas);
+
 void App_gravarTemp (unsigned char *s_temp, unsigned char *index, unsigned char lat, lt* lata, int numero_latas);
 
 void App_delayMs (unsigned int ms);
+
+unsigned char App_lataAtingiuTemp (lt* lata, int numero_latas);
 
 void App_configuraClk ();
 

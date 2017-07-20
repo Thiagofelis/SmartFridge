@@ -24,7 +24,7 @@
 
 //define para mensagens
 
-//primera mesagem de controle
+//primera mesagem de controle RPi>MSP
 #define TEMP_LATA_0 BIT0
 #define TEMP_LATA_1 BIT1
 #define TEMP_LATA_2 BIT2
@@ -33,10 +33,15 @@
 #define SETAR_TEMP_DE_1 BIT4
 #define SETAR_TEMP_DE_2 BIT5
 #define PING BIT6
-//segunda mesagem de controle
+//segunda mesagem de controle RPi>MSP
 #define PREVISAO_LATA_0 BIT0
 #define PREVISAO_LATA_1 BIT1
 #define PREVISAO_LATA_2 BIT2
+//mensagem de controle MSP>RPi
+#define LATA_0_ATINGIU_TEMP BIT0
+#define LATA_1_ATINGIU_TEMP BIT1
+#define LATA_2_ATINGIU_TEMP BIT2
+#define LATA_TODAS_ATINGIU_TEMP 0b111
 
 // quando tiver que mandar algo, a ordem sera
 // TEMP_LATA 0 a 2, PREVISAO_LATA 0 a 2

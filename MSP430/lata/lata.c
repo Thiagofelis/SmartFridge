@@ -7,6 +7,7 @@ int LATA_EstaPresente (lt* lp)
 
 unsigned int LATA_converterParaTemp (unsigned int x)
 { // ATENCAO, AGR ESSA FUNCAO INTERPOLA PARA VALORES ENTRE 0 E 800, EM Q 0 E -40C E 800 40C
+	
 	float abs[10] = {5.24, 8.01, 10.0, 12.56, 20.24, 33.63, 57.67, 102.3, 188.2, 360.9};
 	unsigned int ord[10] = {800, 700, 650, 600, 500, 400, 300, 200, 100, 0};
 
@@ -25,7 +26,7 @@ unsigned int LATA_converterParaTemp (unsigned int x)
 	// Calcula temp correspondente
 	float calc = (res - abs[i]) * (ord[i] - ord[i + 1]) / (abs[i] - abs[i + 1]);
 
-	return ord[i] + calc;
+	return ord[i] + calc;	
 }
 
 void LATA_ConverterMedicoesEmTemp (lt* lp)
@@ -177,12 +178,36 @@ WORD LATA_PegarCanaisTemp (lt* lp)
 	return lp->canal_temperatura;	
 }
 
+void LATA_SetarTempDesejada (lt* lp, unsigned int temp)
+{
+	lp->temp_desejada = temp;
+}
+
+unsigned char LATA_AtingiuTemp (lt* lp)
+{
+	if ( (lp->ficou_ausente == true) || (lp->medic_feitas != NUMERO_MEDICOES_NECESSARIAS) )
+	{ // medicao foi mal sucedida
+		return 0;
+	}
+	if ( (lp->temp_desejada != NAO_TEM) && (lp->tempfinal <= lp->temp_desejada) )
+	{ // temp da lata atingiu a meta
+		lp->temp_desejada = NAO_TEM;
+		lp->ultimo_x = PAROU; // DEPOIS, tem q olhar o trem da previsao, ta uma bagunca e n ta funcionando ainda
+		return 1;
+	}
+	else
+	{ // temp nao atingiu a meta
+		return 0;
+	}
+}
+
 void LATA_Iniciar (unsigned int tempcanal, unsigned int prescanal, lt *lp, unsigned int identific)
 {
 	lp->canal_temperatura = tempcanal;
 	lp->canal_presenca = prescanal;
 	lp->id = identific;
 	lp->ultimo_x = 0;
+	lp->temp_desejada = NAO_TEM;
 	//lp->ultimo_TX[0] = 0xff; // situacao impossivel, de modo que a primeira medicao valida feita vai ser necessariamente enviada
 //	lp->ultimo_TX[1] = ' '; // ^tem q olhar isso
 }
