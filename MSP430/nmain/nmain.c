@@ -21,10 +21,11 @@ void main (void)
 	
 	// Setar a seguinte parte do programa de acordo com o uso
 	/*----------------------------------*/	
-	int numero_latas = 1;
+	int numero_latas = 2;
 	lt lata[numero_latas];
 	
-	LATA_Iniciar (BIT7, P1_X | BIT6, &lata[0], 0);
+	LATA_Iniciar (BIT7, P2_X | BIT5, &lata[0], 0);
+	LATA_Iniciar (BIT3, P2_X | BIT4, &lata[1], 1);
 	sinais_presenca1 = BIT6; // sinais de presenca em pinos 1.x
 	sinais_presenca2 = 0;    // sinais de presenca em pinos 2.x
 	canais_temp = BIT7;      // canais do ADC10 utilizados nos pinos 1.x (unicos utilizados para o ADC)
@@ -43,7 +44,7 @@ void main (void)
 		{ // ATENCAO, se a int for de lata, NAO guarde a temperatura medida no arranjo de medicoes,
 		  // pois as medicoes precisao ser igualmente espacadas, entao so pode guardar quando for int do TIMER
 			intType &= ~LATA; // PRECISA ficar no inicio do if
-		
+
 			App_rstLatas (lata, numero_latas); // Reseta medicoes
 
 			App_medirLatas (lata, medicoes, numero_latas);
@@ -63,23 +64,23 @@ void main (void)
 		{
 			intType &= ~RX; // PRECISA ficar no inicio do if
 			
+			unsigned char s[1 + (numero_latas * 3)];  // 1 para o header de controle e 3 para cada lata
+			
 			while (zig_RX_getLastPckt () == true)
 			{	
 				if (Rx.srcAddr[0] == 0x0c && Rx.srcAddr[1] == 0x4f)
 				{
+					s[0] = 0;
 					if (Rx.payload[0] & PING)
-					{ // quando RPi pede ping, ele so pode pedir ping e mais nada
-						unsigned char s[2];
-						s[0] = 0xff;
-						App_enviar (s, 1);
-						continue;
+					{ 
+						s[0] |= PONG;
 					}
 					
-					unsigned char s_temp[10];
-					unsigned char index = 0;			
+					unsigned char index = 1;			
 					
-					if (Rx.payload[1] & LATA_TODAS_ATINGIU_TEMP)
+					if (Rx.payload[1] & SETAR_TEMP_TODAS)
 					{
+						s[0] |= TEMP_SETADA;
 						App_setarTempDesejada (&Rx.payload[1], lata, numero_latas);
 					}
 					App_rstLatas (lata, numero_latas); // Reseta medicoes
@@ -88,22 +89,20 @@ void main (void)
 
 					App_converterMedicoesEmTemp (lata, numero_latas);	
 					
-					App_attLedLatas (lata, numero_latas); // Atualiza a led de modo a indicar a mais gelada		
+					//App_attLedLatas (lata, numero_latas); // Atualiza a led de modo a indicar a mais gelada		
 					
 					if (Rx.payload[0] & TEMP_LATA_TODAS)
 					{
-						App_gravarTemp (s_temp, &index, Rx.payload[0] & TEMP_LATA_TODAS, lata, numero_latas);
+						s[0] |= (Rx.payload[0] & TEMP_LATA_TODAS) << 3;
+						App_gravarTemp (s, &index, Rx.payload[0] & TEMP_LATA_TODAS, lata, numero_latas);
 					}	
-					unsigned char s[2];
-					s[0] = App_lataAtingiuTemp (lata, numero_latas);
+
+					s[0] |= App_lataAtingiuTemp (lata, numero_latas);
+
+
 					if (s[0] != 0)
 					{
-						App_enviar (s, 1);
-					}
-
-					if (index)
-					{
-						App_enviar (s_temp, index);
+						App_enviar (s, index);
 					}
 				}
 			}

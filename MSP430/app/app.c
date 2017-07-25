@@ -63,6 +63,8 @@ unsigned char App_lataAtingiuTemp (lt* lata, int numero_latas)
 
 void App_gravarTemp (unsigned char *s_temp, unsigned char *index, unsigned char lat, lt* lata, int numero_latas)
 {
+	// aaaa aaaa - aaaa bbbb - bbbb bbbb - cccc cccc - cccc 0000
+	
 	unsigned int j, k;
 	char i, flag = 0;
 	char numero_de_medicoes_a_enviar = 0;
@@ -75,12 +77,6 @@ void App_gravarTemp (unsigned char *s_temp, unsigned char *index, unsigned char 
 		}
 		lat_temp = lat_temp >> 1; 
 	}
-
-	/*for (i = 0; i < numero_de_medicoes_a_enviar ; i++)
-	{
-		App_delayMs (500);
-		P1OUT ^= BIT0;
-	}*/
 	
 	if ( (numero_de_medicoes_a_enviar % 2) != 0)
 	{
@@ -121,8 +117,8 @@ void App_gravarTemp (unsigned char *s_temp, unsigned char *index, unsigned char 
 			lat = lat >> 1; 
 		}
 		j = LATA_PegarTemp (&lata[(int)ii]);
-		s_temp[0 + *index] = j >> 8;
-		s_temp[1 + *index] = j;
+		s_temp[0 + *index] = j >> 4;
+		s_temp[1 + *index] = j << 4;
 		*index += 2;
 	}
 }
