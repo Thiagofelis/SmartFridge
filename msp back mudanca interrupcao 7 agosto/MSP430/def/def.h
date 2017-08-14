@@ -15,8 +15,6 @@
 #define P2_X BIT8
 #define PX_X BIT8
 
-#define FALHOU -1
-
 //define para intType
 #define TIMER BIT0
 #define RX BIT1

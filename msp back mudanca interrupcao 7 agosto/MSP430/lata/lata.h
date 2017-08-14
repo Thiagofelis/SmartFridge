@@ -9,7 +9,7 @@
 #include "def.h"
 
 #define FIM_MEDICOES_COMPLETAS 2
-#define FIM_LATA_AUSENTE -1
+#define FIM_LATA_FICOU_AUSENTE -1
 #define CONTINUA_MEDICAO_INVALIDA 0
 #define CONTINUA_MEDICAO_VALIDA 1
 
@@ -43,7 +43,7 @@ typedef struct lat
 	unsigned int tempfinal         :10;
 	unsigned int temp_desejada     :10;
 	unsigned int medic_feitas      : 4; // ATENCAO, precisa mudar se NUMERO_MEDICOES_NECESSARIAS mudar
-	unsigned int esta_presente     : 1;
+	unsigned int ficou_ausente     : 1; // ficou_ausente = 1 <=> lata ficou ausente durante a medicao
 	unsigned int id                : 2;
 //	unsigned char ultimo_TX[TAMANHO_PACOTE + 1]; // guarda string da ultima mensagem enviada
 	unsigned char medicoes_x[PONTOS_A_SEREM_INTERPOLADOS];
@@ -53,10 +53,6 @@ typedef struct lat
 } lt;
 
 #include "app.h"
-
-void LATA_AtualizarPresenca (lt* lp);
-
-unsigned int LATA_PegarCanalPresenca (lt* lp);
 
 void LATA_SetarTempDesejada (lt* lp, unsigned int temp);
 

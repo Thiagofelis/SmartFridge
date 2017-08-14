@@ -2,51 +2,7 @@
 
 int LATA_EstaPresente (lt* lp)
 {
-	return lp->esta_presente;
-}
-
-unsigned int LATA_PegarCanalPresenca (lt* lp)
-{
-	return lp->canal_presenca;
-}
-
-void LATA_AtualizarPresenca (lt* lp)
-{
-	unsigned int IntTemp;
-	// "Writing to P1IES, or P2IES can result in setting the corresponding interrupt flags"
-	// ^por isso salvamos PXIFG antes de escrever em PXIES
-	if (App_lerCanal (lp->canal_presenca) != 0) 
-	{// se a lata esta presente, ativamos int para borda de descida, para avisar quando a lata for tirada do slot	
-		lp->esta_presente = true;
-		if ((lp->canal_presenca & PX_X) == P1_X)
-		{
-			IntTemp = P1IFG; 
-			P1IES |= (lp->canal_presenca - P1_X);
-			P1IFG = IntTemp; 
-		}
-		if ((lp->canal_presenca & PX_X) == P2_X)
-		{
-			IntTemp = P2IFG;
-			P2IES |= (lp->canal_presenca - P2_X);
-			P2IFG = IntTemp; 
-		}
-	}
-	else
-	{// se a lata esta ausente, ativamos int de borda de subida, para avisar quando uma lata for colocado no slot
-		lp->esta_presente = false;
-		if ((lp->canal_presenca & PX_X) == P1_X)
-		{
-			IntTemp = P1IFG;
-			P1IES &= ~(lp->canal_presenca - P1_X);
-			P1IFG = IntTemp; 
-		}
-		if ((lp->canal_presenca & PX_X) == P2_X)
-		{
-			IntTemp = P2IFG;
-			P2IES &= ~(lp->canal_presenca - P2_X);
-			P2IFG = IntTemp; 
-		}	
-	}
+	return (App_lerCanal (lp->canal_presenca) != 0 ? true : false);
 }
 
 unsigned int LATA_converterParaTemp (unsigned int x)
@@ -75,7 +31,7 @@ unsigned int LATA_converterParaTemp (unsigned int x)
 
 void LATA_ConverterMedicoesEmTemp (lt* lp)
 {
-	if ( (lp->medic_feitas != NUMERO_MEDICOES_NECESSARIAS) )
+	if ( (lp->ficou_ausente == true) || (lp->medic_feitas != NUMERO_MEDICOES_NECESSARIAS) )
 		return;
 	
 	lp->tempfinal = LATA_converterParaTemp (LATA_tempMedia (lp->amostra));	
@@ -83,7 +39,7 @@ void LATA_ConverterMedicoesEmTemp (lt* lp)
 
 unsigned int LATA_PegarTemp (lt* lp)
 {
-	if ( (lp->medic_feitas != NUMERO_MEDICOES_NECESSARIAS) )
+	if ( (lp->ficou_ausente == true) || (lp->medic_feitas != NUMERO_MEDICOES_NECESSARIAS) )
 		return TEMP_INVALIDA;
 	return lp->tempfinal;
 }
@@ -95,11 +51,12 @@ int LATA_CarregarMedicoes (lt* lp, unsigned int medicoes[])
 	// Retorna 1 se a medicao teve sucesso e foi armazenada na instancia de lata correspondente.
 	// Retorna 0 se a medicao nao foi valida
 	// Retorna -1 se a lata nao necessita de medicoes, pois nao esta presente
-	
-	// ATENCAO: resolvi tirar a parte do ficou ausente, pois ja que as medicoes sao feitas muito rapidamente,
-	// é impossivel que o usuario troque de latas um slot enquanto estiverem sendo feitas as medicoes. O maximo
-	// que pode ocorrer é de ele retirar a lata, mas definitivamente nao haveria tempo suficiente para tirar a lata
-	// e colocar uma diferente no slot
+
+	// Verifica se em algum ponto das 20 medicoes, a lata deixou de estar presente
+	if (lp->ficou_ausente == true)
+	{
+		return FIM_LATA_FICOU_AUSENTE;
+	}
 
 	// Caso a lata ja tenha 20 medicoes, nenhuma medicao a mais é feita
 	if (lp->medic_feitas == NUMERO_MEDICOES_NECESSARIAS)
@@ -108,9 +65,10 @@ int LATA_CarregarMedicoes (lt* lp, unsigned int medicoes[])
 	}
 
 	// Verifica se a lata a ter a temp medida esta presente
-	if (lp->esta_presente == false) // uma interrupcao de pinagem mantem essa variavel com um valor correto
+	if (LATA_EstaPresente (lp) == false)
 	{
-		return FIM_LATA_AUSENTE;
+		lp->ficou_ausente  = 1;
+		return FIM_LATA_FICOU_AUSENTE;
 	}
 
 	// Se a medicao estiver fora do alcance do termistor, ela é descartada
@@ -179,7 +137,7 @@ int LATA_PosicaoVetor (unsigned int a)
 
 void LATA_SalvarMedicoes (lt *lp)
 {
-	if ( (lp->medic_feitas != NUMERO_MEDICOES_NECESSARIAS) )
+	if ( (lp->ficou_ausente == true) || (lp->medic_feitas != NUMERO_MEDICOES_NECESSARIAS) )
 		return;
 	
 	if (lp->ultimo_x < 4)
@@ -211,6 +169,7 @@ void LATA_SalvarMedicoes (lt *lp)
 
 void LATA_Resetar (lt *lp)
 {
+	lp->ficou_ausente = false;	
 	lp->medic_feitas = 0;
 }
 
@@ -226,7 +185,7 @@ void LATA_SetarTempDesejada (lt* lp, unsigned int temp)
 
 unsigned char LATA_AtingiuTemp (lt* lp)
 {
-	if ( (lp->medic_feitas != NUMERO_MEDICOES_NECESSARIAS) )
+	if ( (lp->ficou_ausente == true) || (lp->medic_feitas != NUMERO_MEDICOES_NECESSARIAS) )
 	{ // medicao foi mal sucedida
 		return 0;
 	}

@@ -14,7 +14,7 @@
 #define MAX_TENTATIVAS_MEDICAO 20
 
 #define FIM_MEDICOES_COMPLETAS 2
-#define FIM_LATA_AUSENTE -1
+#define FIM_LATA_FICOU_AUSENTE -1
 #define CONTINUA_MEDICAO_INVALIDA 0
 #define CONTINUA_MEDICAO_VALIDA 1
 
@@ -29,8 +29,6 @@
 
 /* Utilizado para adormecer */
 volatile unsigned int globalSeg; // n sei se precisa do volatile
-
-void App_atualizarPresencaNasLatas (lt* lata, int numero_latas);
 
 void App_setarTempDesejada (unsigned char *s, lt* lata, int numero_latas);
 

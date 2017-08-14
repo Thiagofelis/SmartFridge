@@ -8,6 +8,9 @@
 unsigned int sinais_presenca1, sinais_presenca2, canais_temp;
 unsigned char intType; // tambem e utilizado para indicar se o timer esta sendo utilizado
 
+lt lata[2];
+int numero_latas = 2;
+
 // LEMBRETE: NAO BOTE DELAYS EM INTERRUPCOES
 void main (void)
 {
@@ -21,14 +24,12 @@ void main (void)
 	
 	// Setar a seguinte parte do programa de acordo com o uso
 	/*----------------------------------*/	
-	int numero_latas = 2;
-	lt lata[numero_latas];
 	
 	LATA_Iniciar (BIT7, P2_X | BIT5, &lata[0], 0);
 	LATA_Iniciar (BIT3, P2_X | BIT4, &lata[1], 1);
-	sinais_presenca1 = BIT6; // sinais de presenca em pinos 1.x
-	sinais_presenca2 = 0;    // sinais de presenca em pinos 2.x
-	canais_temp = BIT7;      // canais do ADC10 utilizados nos pinos 1.x (unicos utilizados para o ADC)
+	sinais_presenca1 = 0; 				// sinais de presenca em pinos 1.x
+	sinais_presenca2 = BIT4 | BIT5;    	// sinais de presenca em pinos 2.x
+	canais_temp = BIT7 | BIT3; 			// canais do ADC10 utilizados nos pinos 1.x (unicos utilizados para o ADC)
 	/*----------------------------------*/	
 	
 	unsigned int medicoes[8]; // Armazena as medicoes feitas a cada ciclo do ADC
@@ -37,12 +38,23 @@ void main (void)
 	App_ativaIntPres (sinais_presenca1, sinais_presenca2);
 	__bis_SR_register (GIE); 	
 	
-	/* Parte que repete */
+	/* Parte que repete */		
+	intType |= TIMER_IS_ON;
+	App_setTimer1min ();
+	intType |= TIMER; // primeira interrupcao é em t = 0
+			
+	// atualiza a presenca de todas as latas
+	App_atualizarPresencaNasLatas (lata, numero_latas);
 	while (true)
-	{
-		if (intType & LATA)
-		{ // ATENCAO, se a int for de lata, NAO guarde a temperatura medida no arranjo de medicoes,
-		  // pois as medicoes precisao ser igualmente espacadas, entao so pode guardar quando for int do TIMER
+	{			
+		/* Tirei pois estou questionando a utilidade das ints de lata
+		if ( (intType & LATA) && !(intType & TIMER)) 
+			//^ note que nao e preciso int de lata se ja tiver de timer,
+			// pois tudo q a int de lata faz a de timer tbm faz, entao
+			// nao e necessario repitir
+		{ 
+			// ATENCAO, se a int for de lata, NAO guarde a temperatura medida no arranjo de medicoes,
+			// pois as medicoes precisao ser igualmente espacadas, entao so pode guardar quando for int do TIMER
 			intType &= ~LATA; // PRECISA ficar no inicio do if
 
 			App_rstLatas (lata, numero_latas); // Reseta medicoes
@@ -60,6 +72,7 @@ void main (void)
 				App_enviar (s, 1);
 			}
 		}
+		*/
 		if (intType & RX)
 		{
 			intType &= ~RX; // PRECISA ficar no inicio do if
@@ -135,6 +148,18 @@ void main (void)
 			continue;	
 		}
 		
+		if (App_algumaLataPresente (lata, numero_latas) == false) // Analisa o arranjo de latas para ver se alguma está presente
+		{	
+			intType &= ~TIMER_IS_ON;
+			App_desativaTimer ();
+			intType |= SLEEPING;
+			__bis_SR_register (LPM4_bits); // CPUOFF até que seja detectada uma lata ou RX
+			intType &= ~SLEEPING;
+			intType |= TIMER_IS_ON;
+			App_setTimer1min ();
+			continue;
+		}
+		
 		if ( (intType & TIMER_IS_ON) != 0)
 		{ 
 			// se acontecer uma int de lata enquanto o timer estiver ligado, a int sera tradada e
@@ -144,26 +169,14 @@ void main (void)
 			__bis_SR_register (LPM1_bits);
 			continue;
 		}
-		
-		if (App_algumaLataPresente (lata, numero_latas) == false) // Analisa o arranjo de latas para ver se alguma está presente
-		{	
-			intType |= SLEEPING;
-			__bis_SR_register (LPM4_bits); // CPUOFF até que seja detectada uma lata
-			intType &= ~SLEEPING;
-			// Apost a interrupção de colocar lata no slot, o código continua aqui 
-		}
-		else
-		{
-			intType |= TIMER_IS_ON;
-			App_sleep1seg (60);	// espera 1 min
-		}
 	}
 }
 #pragma vector = PORT1_VECTOR
 __interrupt void Port1 (void)
-{
+{	
 	if ( (P1IFG & sinais_presenca1) != 0 ) // Lata foi posta no slot
 	{
+		/*
 		intType |= LATA;
 		if ( (intType & TIMER_IS_ON) != 0)
 		{ // timer ligado, cpu esta em lpm1
@@ -174,6 +187,10 @@ __interrupt void Port1 (void)
 			__bic_SR_register_on_exit (LPM4_bits); 
 		}
 		// se nao for nenhum, cpu esta funcionando normalmente
+		*/
+		// atualiza a presenca de todas as latas
+		P1OUT ^= BIT0;
+		App_atualizarPresencaNasLatas (lata, numero_latas);
 	}
 	P1IFG &= ~sinais_presenca1;
 }
@@ -183,6 +200,7 @@ __interrupt void Port2 (void) // RX/TX Interrupt routine
 {	
 	if ( (P2IFG & sinais_presenca2) != 0 ) // Lata foi posta no slot
 	{
+		/*
 		intType |= LATA;
 		if ( (intType & TIMER_IS_ON) != 0)
 		{ // timer ligado, cpu esta em lpm1
@@ -193,6 +211,10 @@ __interrupt void Port2 (void) // RX/TX Interrupt routine
 			__bic_SR_register_on_exit (LPM4_bits); 
 		}
 		// se nao for nenhum, cpu esta funcionando normalmente
+	*/
+		// atualiza a presenca de todas as latas
+		P1OUT ^= BIT0;
+		App_atualizarPresencaNasLatas (lata, numero_latas);
 	}
 	if (P2IFG & ZIG_INTPIN)
 	{
@@ -251,6 +273,10 @@ __interrupt void Port2 (void) // RX/TX Interrupt routine
 				}
 				zig_SetShort (BBREG1, 0);
 			}		
+			
+			// é importante sair do estado de dormencia para que a int de
+			// rx seja tratada. note que no caso de int de tx, nao é necessario
+			// sair do estado de dormencia, pois a int ja faz todo o necessario
 			if ( (intType & TIMER_IS_ON) != 0)
 			{ // timer ligado, cpu esta em lpm1
 				__bic_SR_register_on_exit (LPM1_bits); 
@@ -270,10 +296,12 @@ __interrupt void TimerA(void)
 {
 	globalSeg--;
 	if (globalSeg == 0)
-	{
-		TACTL = MC_0;
-		intType |= TIMER;
-		intType &= ~TIMER_IS_ON;
+	{ // ATENCAO, note que o timer continua apos passados 60 seg,
+	  // so que ele sobe a flag de int do timer e sai do estado lpm1
+	  // para tratar a int. lembrando que sempre que vc estiver com o
+	  // timer ligado, ou vc esta em lpm1 ou esta acordado
+		intType |= TIMER;		
+		globalSeg = 5 * 60; 
 		__bic_SR_register_on_exit (LPM1_bits); 
 	}
 }

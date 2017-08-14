@@ -182,7 +182,7 @@ void App_medirLatas (lt *lata, WORD medicoes[], int numero_latas)
 			medicao = LATA_CarregarMedicoes (&lata[jjj], medicoes);
 
 			// Verifica se a lata analisada esta ausente ou ja terminou as medicoes
-			if ( (medicao != FIM_MEDICOES_COMPLETAS) && (medicao != FIM_LATA_AUSENTE) )
+			if ( (medicao != FIM_MEDICOES_COMPLETAS) && (medicao != FIM_LATA_FICOU_AUSENTE) )
 			{ // ou seja, as medicoes nao finalizaram
 				finalizou = false;
 			}
@@ -233,9 +233,9 @@ void App_converterMedicoesEmTemp (lt* lata, int numero_latas)
 void App_setTimer1min ()
 { // FUNCIONA :)
 	globalSeg = 5 * 60; 
-	CCTL0 = CCIE;                  	    // CCR0 interrupt enabled
+	CCTL0 = CCIE;                             // CCR0 interrupt enabled
 	CCR0 = 25001;
-	TACTL = TASSEL_2 + ID_3 + MC_1; 	// TASSEL = SMCLK, ID = /8, MC = COUNTS TO CCR0
+	TACTL = TASSEL_2 + ID_3 + MC_1;                  // TASSEL = SMCLK, ID = /8, MC = COUNTS TO CCR0
 	/*
 		f = 10^6 / 8 , t = 8 * 10^-6
 		t * 25000 * 5 = 1
@@ -295,7 +295,7 @@ void App_configurarADC (WORD* medicoes, WORD canais_temp)
 {
 	ADC_Configurar (medicoes, canais_temp);
 }
-/*
+
 WORD App_pegarCanaisTemp (lt *lata, int numero_latas)
 {
 	WORD canais_presenca = 0;
@@ -305,7 +305,7 @@ WORD App_pegarCanaisTemp (lt *lata, int numero_latas)
 		canais_presenca += LATA_PegarCanaisTemp (&lata[j]);
 	}
 	return canais_presenca;
-}*/
+}
 
 void App_configuraRadio ()
 {
@@ -338,17 +338,6 @@ void App_configuraMSP ()
 	
 }
 
-void App_atualizarPresencaNasLatas (lt* lata, int numero_latas)
-{
-	// atualiza presenca em todas as latas, ou seja, verifica se elas estao
-	// presentes e atualiza a variavel esta_presente com o valor correto
-	int i;
-	for (i = 0; i < numero_latas; i++)
-	{
-		LATA_AtualizarPresenca (&lata[i]);
-	}
-}
-
 unsigned int App_lerCanal (unsigned int pino)
 {
 	if ( (pino & PX_X) == P1_X)
@@ -357,22 +346,8 @@ unsigned int App_lerCanal (unsigned int pino)
 		return P1IN & pino; 
 	}
 		pino &= ~P2_X;
-	return P2IN & pino; 
+		return P2IN & pino; 
 }
-
-int App_pesquisaLataApartirIntPresenca (unsigned int pino, lt* lata, int numero_latas)
-{ // Retorna o indice da lata que tem a pinagem da presenca correspondente ao valor em pino
-	int i;
-	for (i = 0; i < numero_latas; i++)
-	{
-		if (LATA_PegarCanalPresenca (&lata[i]) == pino)
-		{
-			return i;
-		}
-	}
-	return FALHOU;
-}
-
 /*
 #pragma vector = TIMER0_A0_VECTOR //Timer0,TAIFG interrupt vector
 __interrupt void TimerA(void)

@@ -26,9 +26,9 @@ void main (void)
 	
 	LATA_Iniciar (BIT7, P2_X | BIT5, &lata[0], 0);
 	LATA_Iniciar (BIT3, P2_X | BIT4, &lata[1], 1);
-	sinais_presenca1 = BIT6; // sinais de presenca em pinos 1.x
-	sinais_presenca2 = 0;    // sinais de presenca em pinos 2.x
-	canais_temp = BIT7;      // canais do ADC10 utilizados nos pinos 1.x (unicos utilizados para o ADC)
+	sinais_presenca1 = 0; 				// sinais de presenca em pinos 1.x
+	sinais_presenca2 = BIT4 | BIT5;    	// sinais de presenca em pinos 2.x
+	canais_temp = BIT7 | BIT3; 			// canais do ADC10 utilizados nos pinos 1.x (unicos utilizados para o ADC)
 	/*----------------------------------*/	
 	
 	unsigned int medicoes[8]; // Armazena as medicoes feitas a cada ciclo do ADC
@@ -37,9 +37,11 @@ void main (void)
 	App_ativaIntPres (sinais_presenca1, sinais_presenca2);
 	__bis_SR_register (GIE); 	
 	
-	/* Parte que repete */
+	/* Parte que repete */		
+	intType |= TIMER_IS_ON;
+	App_setTimer1min ();
 	while (true)
-	{
+	{		
 		if (intType & LATA)
 		{ // ATENCAO, se a int for de lata, NAO guarde a temperatura medida no arranjo de medicoes,
 		  // pois as medicoes precisao ser igualmente espacadas, entao so pode guardar quando for int do TIMER
@@ -135,6 +137,18 @@ void main (void)
 			continue;	
 		}
 		
+		if (App_algumaLataPresente (lata, numero_latas) == false) // Analisa o arranjo de latas para ver se alguma está presente
+		{	
+			intType &= ~TIMER_IS_ON;
+			App_desativaTimer ();
+			intType |= SLEEPING;
+			__bis_SR_register (LPM4_bits); // CPUOFF até que seja detectada uma lata ou RX
+			intType &= ~SLEEPING;
+			intType |= TIMER_IS_ON;
+			App_setTimer1min ();
+			continue;
+		}
+		
 		if ( (intType & TIMER_IS_ON) != 0)
 		{ 
 			// se acontecer uma int de lata enquanto o timer estiver ligado, a int sera tradada e
@@ -143,19 +157,6 @@ void main (void)
 			// para o inicio do loop while, como deve ser
 			__bis_SR_register (LPM1_bits);
 			continue;
-		}
-		
-		if (App_algumaLataPresente (lata, numero_latas) == false) // Analisa o arranjo de latas para ver se alguma está presente
-		{	
-			intType |= SLEEPING;
-			__bis_SR_register (LPM4_bits); // CPUOFF até que seja detectada uma lata
-			intType &= ~SLEEPING;
-			// Apost a interrupção de colocar lata no slot, o código continua aqui 
-		}
-		else
-		{
-			intType |= TIMER_IS_ON;
-			App_sleep1seg (60);	// espera 1 min
 		}
 	}
 }
@@ -271,9 +272,8 @@ __interrupt void TimerA(void)
 	globalSeg--;
 	if (globalSeg == 0)
 	{
-		TACTL = MC_0;
-		intType |= TIMER;
-		intType &= ~TIMER_IS_ON;
+		intType |= TIMER;		
+		globalSeg = 5 * 60; 
 		__bic_SR_register_on_exit (LPM1_bits); 
 	}
 }
