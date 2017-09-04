@@ -94,6 +94,7 @@ void main (void)
 					if (Rx.payload[1] & SETAR_TEMP_TODAS)
 					{
 						s[0] |= TEMP_SETADA;
+						P1OUT ^= BIT0;
 						App_setarTempDesejada (&Rx.payload[1], lata, numero_latas);
 					}
 					App_rstLatas (lata, numero_latas); // Reseta medicoes
@@ -189,7 +190,6 @@ __interrupt void Port1 (void)
 		// se nao for nenhum, cpu esta funcionando normalmente
 		*/
 		// atualiza a presenca de todas as latas
-		P1OUT ^= BIT0;
 		App_atualizarPresencaNasLatas (lata, numero_latas);
 	}
 	P1IFG &= ~sinais_presenca1;
@@ -213,7 +213,6 @@ __interrupt void Port2 (void) // RX/TX Interrupt routine
 		// se nao for nenhum, cpu esta funcionando normalmente
 	*/
 		// atualiza a presenca de todas as latas
-		P1OUT ^= BIT0;
 		App_atualizarPresencaNasLatas (lata, numero_latas);
 	}
 	if (P2IFG & ZIG_INTPIN)
