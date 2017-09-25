@@ -1,0 +1,30 @@
+
+
+<h1>SmartFridge</h1> <br>
+{% load static %}
+
+<img src="{% static "temp/__PUr-f232_2.jpg" %}" alt="My image" width="400" height="200"> <br>
+{% if timeout %}
+<h4>{{ timeout }}</h4>
+{% else %}
+<h4>LATA 0:</h4> {{ a }} <br>
+<h4>LATA 1:</h4> {{ b }} <br>
+{% endif %}
+{% if setar_temp_status %}
+    <h5>{{ setar_temp_status }}</h5>
+{% endif %}
+<p>Setar temperatura para ser avisado:</p>
+<form action="/temp/configura/" method="post">
+    {% csrf_token %}
+  Temperatura: <input type="text" name="temperatura" required><br>
+    <input type="checkbox" name="lataa" value="ok"> Lata 0<br>
+    <input type="checkbox" name="latab" value="ok"> Lata 1<br>
+
+    <input type="submit" value="Submeter">
+</form>
+
+<script src="{% static 'temp/js/app.js' %}"></script>
+
+
+
+

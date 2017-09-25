@@ -4,8 +4,9 @@ from defines import *
 import ctypes
 
 def getTemp(var):
-    if var == 0b111111111111:
+    if var == 0b1111111111:
         return "ausente"
+    print var
     return str(float(var - 400) / 10)
 
 def putTemp (var):

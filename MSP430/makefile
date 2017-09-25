@@ -1,5 +1,5 @@
 system:
-	cd spi && $(MAKE) && cd .. && cd zig && $(MAKE) && cd .. && cd lata && $(MAKE) && cd .. && cd adc && $(MAKE) && cd .. && cd app && $(MAKE) && cd .. && cd main && $(MAKE) && cd .. && cd testes && $(MAKE) && cd .. && cd nmain && $(MAKE) 
+	cd spi && $(MAKE) && cd .. && cd zig && $(MAKE) && cd .. && cd lata && $(MAKE) && cd .. && cd adc && $(MAKE) && cd .. && cd app && $(MAKE) && cd .. && cd nmain && $(MAKE) 
 
 BUILD = build/spi.o build/zig.o build/lata.o build/adc.o build/app.o build/main.o
 

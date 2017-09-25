@@ -1,27 +1,22 @@
-
-
 socket = new WebSocket("ws://" + window.location.host + "/chat/");
+
 socket.onmessage = function(e) {
-    Notify ("Temperatura Atingida", "Meus parabens")
-}
-function loadDoc() {
-    socket.send("hello world");
-}
-
-function valForm( form ){
-   // if (int(form.temperatura.value) <= -40 || int(form.temperatura.value) >= 40)
-    //{
-     //   alert ("e a temp")
-   // }
-    if (document.getElementById('lataa').checked)
+    var lata_gelada = JSON.parse(e.data)
+    var str = ""
+    if (lata_gelada.lta === 1)
     {
-
+        str = str + "Lata 0, "
     }
-    if (document.getElementById('latab').checked)
+    if (lata_gelada.ltb === 1)
     {
-
+        str = str + "Lata 1, "
     }
-
+    if (lata_gelada.ltc === 1)
+    {
+        str = str + "Lata 2, "
+    }
+    str = str + "atingiram a temperatura desejada"
+    Notify ("Temperatura Atingida", str)
 }
 
 // Determine the correct object to use

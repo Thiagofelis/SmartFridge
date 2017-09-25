@@ -11,9 +11,9 @@ void Blink ()
 void zig_reset ()
 {
 	P2IE &= ~BIT1;
-	
-	P2OUT ^= BIT2; // reseta com o pino
-	P2OUT ^= BIT2;
+// Retirado o pino de reset, agr todos os rst sao soft
+//	P2OUT ^= BIT2; // reseta com o pino
+//	P2OUT ^= BIT2;
 	App_delayMs (2);
 	zig_RstSoft ();
 	zig_SetShort (RXFLUSH, 0x01);

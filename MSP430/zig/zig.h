@@ -15,11 +15,11 @@
 
 #define BUFFER_SIZE 2
 	
-#define MAX_RX_PACKET_SIZE 40 
+#define MAX_RX_PACKET_SIZE 30 
 
 /*
 	se os enderecos forem todos short, 17 bytes sao utilizados no que nao for payload
-	sobra entao 23 bytes para o payload, deve caber
+	sobra entao 13 bytes para o payload, deve caber
 */
 
 unsigned char buffer[BUFFER_SIZE][MAX_RX_PACKET_SIZE];

@@ -41,14 +41,6 @@ void App_setarTempDesejada (unsigned char *s, lt* lata, int numero_latas)
 	}
 }
 
-void App_salvarMedicoes (lt* lata, int numero_latas)
-{
-	int i;
-	for (i = 0; i < numero_latas; i++) 
-	{
-		LATA_SalvarMedicoes (&lata[i]);
-	}
-}
 
 unsigned char App_lataAtingiuTemp (lt* lata, int numero_latas)
 {
@@ -133,10 +125,13 @@ void App_configuraClk ()
 
 int App_algumaLataPresente (lt *lata, int numero_latas)
 {
+	// Essa funcao sempre e chamada apos uma medicao de lata, entao e melhor
+	// olhar a temperatura obtida do que a presenca
 	int i;
 	for (i = 0; i < numero_latas; i++)
 	{
-		if (LATA_EstaPresente (&lata[i]) == true)
+	//	if (LATA_EstaPresente (&lata[i]) == true) 
+		if (LATA_PegarTemp (&lata[i]) != LATA_SEM_MEDICAO)
 		{
 			return true;
 		}
@@ -175,7 +170,7 @@ void App_medirLatas (lt *lata, WORD medicoes[], int numero_latas)
 		
 		int finalizou = true;
 		int medicao;	
-
+		
 		// Carrega nos vetores de amostra de cada instancia de lata os valores medidos
 		for (jjj = 0; jjj < numero_latas; jjj++)
 		{
@@ -187,7 +182,7 @@ void App_medirLatas (lt *lata, WORD medicoes[], int numero_latas)
 				finalizou = false;
 			}
 		}
-
+		
 		if (finalizou == true)
 		{
 			return;
@@ -195,35 +190,76 @@ void App_medirLatas (lt *lata, WORD medicoes[], int numero_latas)
 	}
 }
 
-void App_attLedLatas (lt *lata, int numero_latas)
+void App_setarPino (unsigned int pino, int estado)
 {
-	int i, j = 0;
-	for (i = 1; i < numero_latas; i++)
+	if ( (pino & PX_X) == P1_X)
 	{
-		if (LATA_EstaPresente (&lata[i]) == false)
+		pino &= 0b11111111;
+		if (estado == true)
 		{
-			continue;
+			P1OUT |= pino;
 		}
-		
-		if (LATA_EstaPresente (&lata[j]) == false)
+		else
 		{
-			j = i;
-			continue;
+			P1OUT &= ~pino;
 		}
+	}
 		
-		
-		if (LATA_PegarTemp (&lata[i]) > LATA_PegarTemp (&lata[j]))
+	if ( (pino & PX_X) == P2_X)		
+	{
+		pino &= 0b111111;
+		if (estado == true)
 		{
-			j = i;
+			P2OUT |= pino;
+		}
+		else
+		{
+			P2OUT &= ~pino;
+		}
+	}
+}
+
+void App_attLedLatas (lt *lata, int numero_latas, unsigned int sinal_led1, unsigned int sinal_led2)
+{	
+	App_setarPino (P1_X | sinal_led1, false);
+	App_setarPino (P2_X | sinal_led2, false);
+
+	// Note que nao precisamos verificar a presenca da lata aqui. Essa funcao so e chamada apos
+	// medicoes da temperatura. Portanto, podemos apenas olhar para a temperatura e ver se a lata
+	// tem alguma medicao valida.
+
+	int i, j = 0;
+	unsigned int temp;
+	for (i = 0; i < numero_latas; i++)
+	{ // Acha a primeira lata presente e com temperatura valida
+		temp = LATA_PegarTemp (&lata[i]);
+		if (temp != LATA_SEM_MEDICAO)
+		{
+			break;
 		}
 	}
 	
-	/* Acende o led da lata j */
+	if (temp != LATA_SEM_MEDICAO)
+	{ // se houver uma lata presente e com temperatura valida, procuramos a partir dela a lata mais gelada
+      // se a ultima lata do arranjo for escolhida, nao procuramos pois geraria segfault
+		j = i;
+		
+		for (i = i + 1 ; i < numero_latas; i++)
+		{
+			temp = LATA_PegarTemp (&lata[i]);
+			if ( (temp != LATA_SEM_MEDICAO) && (temp < LATA_PegarTemp (&lata[j])) )
+			{
+				j = i;	
+			}
+		}
+		App_setarPino (LATA_PegarCanalLed (&lata[j]), true);
+	}
+
 }
 
 void App_converterMedicoesEmTemp (lt* lata, int numero_latas)
 {
-	int i = 0;
+	int i;
 	for (i = 0; i < numero_latas; i++)
 	{
 		LATA_ConverterMedicoesEmTemp (&lata[i]);
@@ -233,18 +269,23 @@ void App_converterMedicoesEmTemp (lt* lata, int numero_latas)
 void App_setTimer1min ()
 { // FUNCIONA :)
 	globalSeg = 5 * 60; 
-	CCTL0 = CCIE;                  	    // CCR0 interrupt enabled
-	CCR0 = 25001;
-	TACTL = TASSEL_2 + ID_3 + MC_1; 	// TASSEL = SMCLK, ID = /8, MC = COUNTS TO CCR0
+	
+	// CCR0 interrupt enabled
+	TA0CCTL0 = CCIE;                  	    	
+	TA0CCR0 = 25001;
+	
+	// TASSEL = SMCLK, ID = /8, MC = COUNTS TO CCR0
+	TA0CTL = TASSEL_2 + ID_3 + MC_1; 	
 	/*
 		f = 10^6 / 8 , t = 8 * 10^-6
-		t * 25000 * 5 = 1
+		t * 25000 * 5 = 1 s
 	*/
 }
 void App_desativaTimer ()
 {
-	TACTL = MC_0;
+	TA0CTL = MC_0;
 }
+
 /*
 void App_enviaMed (lt *lata, int numero_latas)
 {
@@ -291,6 +332,26 @@ void App_enviar (unsigned char *s, unsigned char size)
 	}
 }
 
+void App_ativarIntBordaSubida (unsigned int presenca1, unsigned int presenca2)
+{/*
+//	unsigned int IntTemp = P1IFG; 
+	P1IES &= ~presenca1;
+	//P1IFG = IntTemp; 
+//	IntTemp = P2IFG; 
+	P2IES &= ~presenca2;
+//	P2IFG = IntTemp; */
+}
+	
+void App_ativarIntBordaDescida (unsigned int presenca1, unsigned int presenca2)
+{
+//	unsigned int IntTemp = P1IFG; 
+	P1IES |= presenca1;
+//	P1IFG = IntTemp; 
+//	IntTemp = P2IFG; 
+	P2IES |= presenca2;
+//	P2IFG = IntTemp; 
+}	
+	
 void App_configurarADC (WORD* medicoes, WORD canais_temp)
 {
 	ADC_Configurar (medicoes, canais_temp);
@@ -323,30 +384,23 @@ void App_configuraRadio ()
 	zig_TX_configDstAddr (dstShortAddr, dstPANid);
 }
 
-void App_configuraMSP ()
-{
+void App_configuraMSP (unsigned int sinaisled1, unsigned int sinaisled2, unsigned int presenca1, unsigned int presenca2)
+{ // 2.3: chip select, 2.2: ~rst, 2.0: wake
+	
 	/* Desativa WDT */
 	WDTCTL = WDTPW  + WDTHOLD;
 	
 	/* Seta pinagem */
-	P2DIR = BIT3 + BIT2 + BIT0;  // 2.3: chip select, 2.2: ~rst, 2.0: wake
-	P2OUT = BIT2;
-	//P2IE = BIT1; <<so é ativado na funcao de inicializacao do radio
-	P2IES |= BIT1; // seleciona borda de descida
-	P2IFG &= ~BIT1;	
-	// Pulldown das presencas ja e selecionado no puc
-	
-}
-
-void App_atualizarPresencaNasLatas (lt* lata, int numero_latas)
-{
-	// atualiza presenca em todas as latas, ou seja, verifica se elas estao
-	// presentes e atualiza a variavel esta_presente com o valor correto
-	int i;
-	for (i = 0; i < numero_latas; i++)
-	{
-		LATA_AtualizarPresenca (&lata[i]);
-	}
+	P1DIR = sinaisled1;
+	P2DIR = sinaisled2 + BIT3; 
+	P2REN |= presenca2;
+	P1REN |= presenca1;
+	P1OUT = 0;
+	P2OUT = 0;
+	P1IES |= presenca1;
+	P2IES |= presenca2;
+	P2IFG = 0;
+	P1IFG = 0;	
 }
 
 unsigned int App_lerCanal (unsigned int pino)

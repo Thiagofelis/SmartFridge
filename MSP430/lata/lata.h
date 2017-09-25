@@ -25,7 +25,7 @@
 
 #define PONTOS_A_SEREM_INTERPOLADOS 4
 
-#define TEMP_INVALIDA 0b111111111111
+#define TEMP_INVALIDA 0b1111111111
 
 #define NAO_TEM 900
 
@@ -40,21 +40,16 @@ typedef struct lat
 	// porta_presenca guarda o numero da porta utilizada para verificar a presenca (ex. 21 se refere a porta 2_1)
 	unsigned int canal_temperatura : 8;
 	unsigned int canal_presenca    : 9;	
+	unsigned int canal_led         : 9;
 	unsigned int tempfinal         :10;
 	unsigned int temp_desejada     :10;
-	unsigned int medic_feitas      : 4; // ATENCAO, precisa mudar se NUMERO_MEDICOES_NECESSARIAS mudar
+	unsigned int medic_feitas      : 5; // ATENCAO, precisa mudar se NUMERO_MEDICOES_NECESSARIAS mudar
 	unsigned int esta_presente     : 1;
 	unsigned int id                : 2;
-//	unsigned char ultimo_TX[TAMANHO_PACOTE + 1]; // guarda string da ultima mensagem enviada
-	unsigned char medicoes_x[PONTOS_A_SEREM_INTERPOLADOS];
-	unsigned int medicoes_y[PONTOS_A_SEREM_INTERPOLADOS];	
-	unsigned char ultimo_x; // soma 1 a cada minuto q passa
 	unsigned int amostra[NUMERO_MEDICOES_NECESSARIAS];									
 } lt;
 
 #include "app.h"
-
-void LATA_AtualizarPresenca (lt* lp);
 
 unsigned int LATA_PegarCanalPresenca (lt* lp);
 
@@ -62,9 +57,9 @@ void LATA_SetarTempDesejada (lt* lp, unsigned int temp);
 
 unsigned char LATA_AtingiuTemp (lt* lp);
 
-void LATA_SalvarMedicoes (lt *lp);
-
 unsigned int LATA_converterParaTemp (unsigned int x);
+
+unsigned int LATA_PegarCanalLed (lt* lp);
 
 unsigned int LATA_PegarTemp (lt* lp);
 
@@ -74,7 +69,7 @@ int LATA_MedicaoValida (unsigned int a);
 
 void LATA_Resetar (lt *lp);
 
-void LATA_Iniciar (unsigned int tempcanal, unsigned int prescanal, lt *lp, unsigned int identific);
+void LATA_Iniciar (unsigned int tempcanal, unsigned int prescanal, unsigned led, lt *lp, unsigned int identific);
 
 //int LATA_MontarPacote (lt* lp, BYTE* s);
 

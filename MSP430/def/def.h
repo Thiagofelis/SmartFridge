@@ -6,6 +6,8 @@
 
 // defines genericos
 
+#define LATA_SEM_MEDICAO 0b1111111111
+
 #define BIT14 0b100000000000000
 
 #define true 1

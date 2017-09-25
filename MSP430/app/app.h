@@ -30,7 +30,9 @@
 /* Utilizado para adormecer */
 volatile unsigned int globalSeg; // n sei se precisa do volatile
 
-void App_atualizarPresencaNasLatas (lt* lata, int numero_latas);
+void App_ativarIntBordaDescida (unsigned int presenca1, unsigned int presenca2);
+
+void App_ativarIntBordaSubida (unsigned int presenca1, unsigned int presenca2);
 
 void App_setarTempDesejada (unsigned char *s, lt* lata, int numero_latas);
 
@@ -62,7 +64,7 @@ void App_rstLatas (lt *lata, int numero_latas);
 
 void App_medirLatas (lt *lata, WORD medicoes[], int numero_latas);
 
-void App_attLedLatas (lt *lata, int numero_latas);
+void App_attLedLatas (lt *lata, int numero_latas, unsigned int sinal_led1, unsigned int sinal_led2);
 
 //void App_enviaMed (lt *lata, int numero_latas);
 
@@ -70,11 +72,13 @@ void App_sleep10seg (unsigned int times);
 
 unsigned int App_lerCanal (unsigned int pino);
 
-void App_configuraMSP ();
+void App_configuraMSP (unsigned int sinaisled1, unsigned int sinaisled2, unsigned int presenca1, unsigned int presenca2);
 
 void App_configuraRadio ();
 
 void App_configurarADC (WORD *medicoes, WORD canais_presenca);
+
+void App_setarPino (unsigned int pino, int estado);
 
 //WORD App_pegarCanaisTemp (lt *lata, int numero_latas);
 

@@ -1,0 +1,1 @@
+11 de setembro: Vou voltar com as int de lata. Antes pensei que pelo fato da lata demorar a esfriar, apos ser colocada uma nova lata, o melhor a ser feito seria esperar a proxima interrupçao do timer para atualizar a led. No entanto, caso a lata a ser retirada seja a mais gelada, é importante que a led não indique que um slot vazio é o mais gelado.

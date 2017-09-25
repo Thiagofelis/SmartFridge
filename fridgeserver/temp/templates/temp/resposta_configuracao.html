@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SmartFridge</title>
+</head>
+<body>
+    <h1>SmartFridge</h1>    <br>
+
+    {% load static %}
+    <img src="{% static "temp/__PUr-f232_2.jpg" %}" alt="My image" width="400" height="200">    <br>
+
+    {% if timeout %}
+    <h4>{{ timeout }}</h4>
+    {% endif %}
+
+    {% if setar_temp_status %}
+    <h5>{{ setar_temp_status }}</h5>
+    {% endif %}
+
+    <a href = "{% url 'index' %}">Voltar a pagina inicial</a>
+    <script src="{% static 'temp/js/app.js' %}"></script>
+</body>
+</html>
