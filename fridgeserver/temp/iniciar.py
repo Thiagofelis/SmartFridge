@@ -2,7 +2,6 @@ from temp.externo.zig import *
 from utility import em_pacote_recebido, board_config
 global Radio
 
-
 def init():
     board_config()
     global Radio

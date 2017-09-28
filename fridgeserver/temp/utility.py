@@ -18,7 +18,7 @@ def em_pacote_recebido(packt):
 
     if packt.payload[0] & 0b111:
         # espera estabelecer conexao com websocket
-        time.sleep(1.5)
+        time.sleep(0.7)
 
         lata_gelata = {'lta': 0, 'ltb': 0, 'ltc': 0}
         if packt.payload[0] & 0b001:
@@ -36,7 +36,6 @@ def em_pacote_recebido(packt):
 def getTemp(var):
     if var == 0b1111111111:
         return "ausente"
-    print var
     return str(float(var - 400) / 10)
 
 
