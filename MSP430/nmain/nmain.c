@@ -13,9 +13,6 @@ unsigned int 	sinais_presenca1 = BIT6,
 
 unsigned char intType = 0; // tambem e utilizado para indicar se o timer esta sendo utilizado
 
-lt lata[3];
-int numero_latas = 3;
-
 // LEMBRETE: NAO BOTE DELAYS EM INTERRUPCOES
 void main (void)
 {
@@ -27,6 +24,8 @@ void main (void)
 	// Setar a seguinte parte do programa de acordo com o uso
 	/*----------------------------------*/	
 	//            ADC   PRESENCA     LED     
+	lt lata[3];
+	int numero_latas = 3;
 	LATA_Iniciar (BIT7, P2_X | BIT5, P2_X | BIT2, &lata[0], 0);
 	LATA_Iniciar (BIT3, P2_X | BIT4, P1_X | BIT5, &lata[1], 1);
 	LATA_Iniciar (BIT0, P1_X | BIT6, P2_X | BIT0, &lata[2], 2);
@@ -91,22 +90,8 @@ void main (void)
 
 					App_medirLatas (lata, medicoes, numero_latas);
 						
-				//	App_converterMedicoesEmTemp (lata, numero_latas);
-					
-					
-					int k;
-					for (k = 0; k < numero_latas; k++)
-					{
-						if ( (lata[k].medic_feitas != NUMERO_MEDICOES_NECESSARIAS) )
-						{
-							lata[k].tempfinal = LATA_SEM_MEDICAO; 
-						}
-						else
-						{
-							lata[k].tempfinal = LATA_converterParaTemp (LATA_tempMedia (lata[k].amostra));	
-						}
-					}
-						
+					App_converterMedicoesEmTemp (lata, numero_latas);
+
 					App_attLedLatas (lata, numero_latas, led1, led2); // Atualiza a led de modo a indicar a mais gelada	
 					
 					if (Rx.payload[0] & TEMP_LATA_TODAS)
